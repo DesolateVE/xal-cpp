@@ -58,6 +58,47 @@ namespace ssl_utils {
         return (unix_timestamp + 11644473600ULL) * 10000000ULL;
     }
 
+    std::optional<std::chrono::system_clock::time_point> Time::parse_iso8601_utc(const std::string& s) {
+    // 支持尾部 Z，忽略毫秒部分
+    if (s.size() < 19) { return std::nullopt; }
+    std::string core = s;
+    if (!core.empty() && (core.back() == 'Z' || core.back() == 'z')) { core.pop_back(); }
+    auto t_pos = core.find('T');
+    if (t_pos == std::string::npos) { return std::nullopt; }
+    auto date = core.substr(0, t_pos);
+    auto time = core.substr(t_pos + 1);
+
+    int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+    char dash1 = 0, dash2 = 0, colon1 = 0, colon2 = 0;
+    std::istringstream ds(date);
+    ds >> year >> dash1 >> month >> dash2 >> day;
+    if (ds.fail() || dash1 != '-' || dash2 != '-') { return std::nullopt; }
+
+    std::string seconds_part;
+    std::istringstream ts(time);
+    ts >> hour >> colon1 >> minute >> colon2 >> seconds_part;
+    if (ts.fail() || colon1 != ':' || colon2 != ':') { return std::nullopt; }
+    auto dot_pos = seconds_part.find('.');
+    if (dot_pos != std::string::npos) { seconds_part = seconds_part.substr(0, dot_pos); }
+    try { second = std::stoi(seconds_part); } catch (...) { return std::nullopt; }
+
+    std::tm tm{};
+    tm.tm_year  = year - 1900;
+    tm.tm_mon   = month - 1;
+    tm.tm_mday  = day;
+    tm.tm_hour  = hour;
+    tm.tm_min   = minute;
+    tm.tm_sec   = second;
+    tm.tm_isdst = -1;
+#ifdef _WIN32
+    std::time_t tt = _mkgmtime(&tm);
+#else
+    std::time_t tt = timegm(&tm);
+#endif
+    if (tt < 0) { return std::nullopt; }
+    return std::chrono::system_clock::from_time_t(tt);
+    }
+
     // Uuid
     std::string Uuid::generate_v3() {
         std::random_device              rd;

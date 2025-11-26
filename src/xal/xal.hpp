@@ -58,7 +58,7 @@ public:
     void        getMsalToken();
     void        getWebToken();
     // XstsToken   getXstsToken();
-    void getHomeToken();
+    void getHomeStreamingToken();
 
     CodeChallenge getCodeChallenge();
     std::string   genRandomState(int bytes);
@@ -99,4 +99,6 @@ private:
     std::unique_ptr<DeviceToken>   mDeviceToken;
     std::unique_ptr<CodeChallenge> mCodeChallenge;
     std::unique_ptr<SisuToken>     mSisuToken;
+    std::unique_ptr<XstsToken>     mHomeStreamingXsts;
+    std::unique_ptr<XstsToken>     mWebToken;
 };

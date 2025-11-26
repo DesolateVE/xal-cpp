@@ -16,18 +16,8 @@ struct UserToken {
     uint64_t    expires_at;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
         UserToken, token_type, expires_in, scope, access_token, refresh_token, user_id, expires_at)
-
-    void updateExpiry() {
-        auto now            = std::chrono::system_clock::now();
-        auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-        expires_at          = unix_timestamp + expires_in;
-    }
-
-    bool isExpired() const {
-        auto now            = std::chrono::system_clock::now();
-        auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-        return unix_timestamp >= expires_at;
-    }
+    void updateExpiry();
+    bool isExpired() const;
 };
 
 // ===== Sisu token models (from sisu/authenticate response) =====
@@ -105,5 +95,31 @@ struct SisuToken {
 };
 
 struct XstsToken {
-    std::string Token;
+    // 对应 XSTS 授权返回的 DisplayClaims.xui 列表
+    struct DisplayClaimsType {
+        struct Xui {
+            std::string gtg;  // Gamertag
+            std::string xid;  // Xbox ID
+            std::string uhs;  // User Hash
+            std::string agg;  // Age Group (Adult/Teen/...)
+            std::string usr;  // 用户特征串 (示例: "195 234")
+            std::string prv;  // 权限列表 (空格分隔数字)
+            std::string ugc;  // UGC 相关权限串
+            NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, gtg, xid, uhs, agg, usr, prv, ugc)
+        };
+        std::vector<Xui> xui;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DisplayClaimsType, xui)
+    };
+
+    std::string        IssueInstant;    // 令牌签发时间 ISO8601
+    std::string        NotAfter;        // 过期时间 ISO8601
+    std::string        Token;           // XSTS JWT (加密包装)
+    DisplayClaimsType  DisplayClaims;   // 里面的 xui 数组
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(XstsToken, IssueInstant, NotAfter, Token, DisplayClaims)
+    bool isExpired() const;
+    uint64_t secondsUntilExpiry() const;
+
+  private:
+    // 简单解析形如 2025-11-26T08:32:10.5118384Z 的时间（忽略毫秒部分）
+    static std::chrono::system_clock::time_point parse_iso8601_utc(const std::string& s);
 };

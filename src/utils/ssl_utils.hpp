@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <nlohmann/json.hpp>
 #include <random>
 #include <string>
@@ -24,6 +25,9 @@ namespace ssl_utils {
 
     namespace Time {
         uint64_t get_windows_timestamp();
+        // 解析 ISO8601 UTC 时间字符串，例如 "2025-11-26T08:32:10.5118384Z"
+        // 成功返回 time_point，失败返回 nullopt
+        std::optional<std::chrono::system_clock::time_point> parse_iso8601_utc(const std::string& s);
     }  // namespace Time
 
     namespace Uuid {

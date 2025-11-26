@@ -77,7 +77,7 @@ void XAL::getWebToken() {
     doXstsAuthorization(getSisuToken(), "http://xboxlive.com");
 }
 
-void XAL::getHomeToken() {
+void XAL::getHomeStreamingToken() {
     doXstsAuthorization(getSisuToken(), "http://gssv.xboxlive.com/");
     // genStreamingToken(getXstsToken(), "xhome");
 }
@@ -197,6 +197,7 @@ void XAL::doSisuAuthorization(const UserToken&   user_token,
         std::cout << res->body << std::endl;
         SisuToken sisu_token = nlohmann::json::parse(res->body).get<SisuToken>();
         mSisuToken           = std::make_unique<SisuToken>(sisu_token);
+        return;
     }
 
     throw std::runtime_error("Failed to do Sisu authorization");
@@ -222,6 +223,7 @@ void XAL::exchangeCodeForToken(std::string code, std::string code_verifier) {
         UserToken user_token = nlohmann::json::parse(res->body).get<UserToken>();
         mUserToken           = std::make_unique<UserToken>(user_token);
         mUserToken->updateExpiry();
+        return;
     }
 
     throw std::runtime_error("Failed to exchange code for token");
@@ -265,10 +267,10 @@ std::vector<uint8_t> XAL::SignData(const std::string& url,
 
 void XAL::doXstsAuthorization(const SisuToken& sisu_token, const std::string& relyingParty) {
     nlohmann::json body = {{"Properties",
-                            {"SandboxId", "RETAIL"},
-                            {"DeviceToken", sisu_token.DeviceToken},
-                            {"TitleToken", sisu_token.TitleToken.Token},
-                            {"UserTokens", nlohmann::json::array({sisu_token.UserToken.Token})}},
+                            {{"SandboxId", "RETAIL"},
+                             {"DeviceToken", sisu_token.DeviceToken},
+                             {"TitleToken", sisu_token.TitleToken.Token},
+                             {"UserTokens", nlohmann::json::array({sisu_token.UserToken.Token})}}},
                            {"RelyingParty", relyingParty},
                            {"TokenType", "JWT"}};
 
@@ -287,6 +289,8 @@ void XAL::doXstsAuthorization(const SisuToken& sisu_token, const std::string& re
         // XSTS Token response can be parsed here if needed
         return;
     }
+
+    throw std::runtime_error("Failed to do XSTS authorization");
 }
 
 void XAL::exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_token) {
@@ -364,6 +368,7 @@ void XAL::refreshUserToken() {
         UserToken user_token = nlohmann::json::parse(res->body).get<UserToken>();
         mUserToken           = std::make_unique<UserToken>(user_token);
         mUserToken->updateExpiry();
+        return;
     }
 
     throw std::runtime_error("Failed to refresh user token");
