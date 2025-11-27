@@ -1,28 +1,10 @@
 #include "token_store.hpp"
+
+#include <chrono>
+
 #include "ssl_utils.hpp"
-#include <sstream>
-#include <optional>
 
-bool SisuToken::isExpired() {
-
-    auto now     = std::chrono::system_clock::now();
-    auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-
-    // Collect NotAfter fields to check
-    const std::string* fields[] = {&TitleToken.NotAfter, &UserToken.NotAfter, &AuthorizationToken.NotAfter};
-    for (auto* f: fields) {
-        if (!f->empty()) {
-            auto tp = ssl_utils::Time::parse_iso8601_utc(*f);
-            // 统一语义：解析失败视为过期
-            if (!tp) return true;
-            auto tt = std::chrono::system_clock::to_time_t(*tp);
-            if (static_cast<int64_t>(tt) <= now_sec) return true;  // expired
-        }
-    }
-    return false;
-}
-
-// ==== UserToken implementations moved from header ====
+// ---------------- UserToken implementations ----------------
 void UserToken::updateExpiry() {
     auto now            = std::chrono::system_clock::now();
     auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
@@ -35,23 +17,37 @@ bool UserToken::isExpired() const {
     return unix_timestamp >= expires_at;
 }
 
-// ==== XstsToken implementations moved from header ====
-std::chrono::system_clock::time_point XstsToken::parse_iso8601_utc(const std::string& s) {
-    auto tp = ssl_utils::Time::parse_iso8601_utc(s);
-    return tp.value_or(std::chrono::system_clock::time_point{});
+// ---------------- SisuToken implementation ----------------
+bool SisuToken::isExpired() {
+    auto               now      = std::chrono::system_clock::now();
+    const std::string* fields[] = {&TitleToken.NotAfter, &UserToken.NotAfter, &AuthorizationToken.NotAfter};
+    for (auto* f: fields) {
+        if (!f->empty()) {
+            auto tp = ssl_utils::Time::parse_iso8601_utc(*f);
+            if (!tp || now >= *tp) return true;  // 解析失败或已过期则返回 true
+        }
+    }
+    return false;
 }
 
+// ---------------- GSToken implementation ----------------
+void GSToken::updateExpiry() {
+    auto now     = std::chrono::system_clock::now();
+    auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    expires_at   = now_sec + durationInSeconds;
+}
+
+bool GSToken::isExpired() const {
+    auto now     = std::chrono::system_clock::now();
+    auto now_sec = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    return now_sec >= expires_at;
+}
+
+// ==== XstsToken implementations ====
 bool XstsToken::isExpired() const {
     if (NotAfter.empty()) { return true; }
-    auto not_after_tp = parse_iso8601_utc(NotAfter);
-    auto now          = std::chrono::system_clock::now();
-    return now >= not_after_tp;
-}
-
-uint64_t XstsToken::secondsUntilExpiry() const {
-    if (NotAfter.empty()) { return 0; }
-    auto not_after_tp = parse_iso8601_utc(NotAfter);
-    auto now          = std::chrono::system_clock::now();
-    if (now >= not_after_tp) { return 0; }
-    return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::seconds>(not_after_tp - now).count());
+    auto not_after_tp = ssl_utils::Time::parse_iso8601_utc(NotAfter);
+    if (!not_after_tp) return true;  // 解析失败视为过期
+    auto now = std::chrono::system_clock::now();
+    return now >= *not_after_tp;
 }

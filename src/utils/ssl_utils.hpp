@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
-#include <optional>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>

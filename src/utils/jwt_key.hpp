@@ -3,9 +3,8 @@
 #include <openssl/evp.h>
 
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <string>
-
-#include "ssl_utils.hpp"
 
 class JwtKey {
 public:
@@ -15,11 +14,8 @@ public:
     // 生成新的 P-256 密钥对
     void Generate();
 
-    // 序列化为 JSON 字符串（包含公钥 x,y 和私钥 d）
-    std::string Serialize() const;
-
-    // 从 JSON 字符串反序列化
-    bool Deserialize(const std::string& json);
+    // 从成员变量反序列化为 EVP_PKEY
+    void Deserialize();
 
     // 获取 Base64URL 编码的公钥坐标
     const std::string& GetX() const { return x_; }
@@ -29,15 +25,16 @@ public:
     const std::string& GetD() const { return d_; }
 
     // 获取 OpenSSL EVP_PKEY 指针（用于签名等操作）
-    EVP_PKEY* GetEVP_PKEY() const { return pkey_.get(); }
+    EVP_PKEY* GetEVP_PKEY() const { return pkey_; }
 
     // 检查密钥是否有效
     bool IsValid() const { return pkey_ != nullptr; }
 
-private:
+public:
     std::string x_;
     std::string y_;
     std::string d_;
+    EVP_PKEY*   pkey_ = nullptr;
 
-    std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> pkey_{nullptr, &EVP_PKEY_free};
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(JwtKey, x_, y_, d_)
 };

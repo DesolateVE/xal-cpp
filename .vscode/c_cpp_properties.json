@@ -13,7 +13,10 @@
             "windowsSdkVersion": "10.0.26100.0",
             "intelliSenseMode": "windows-msvc-x64",
             "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe",
-            "compileCommands": "${workspaceFolder}/.vscode/compile_commands.json"
+            "compileCommands": [
+                "${workspaceFolder}/.vscode/compile_commands.json"
+            ],
+            "mergeConfigurations": true
         }
     ],
     "version": 4

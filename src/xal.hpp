@@ -51,15 +51,16 @@ public:
 
     std::string getRedirectUri();
     void        authenticateUser(std::string redirectUri);
+    bool        isAuthenticating() const { return mIsAuthenticating; }
 
-    DeviceToken getDeviceToken();
-    UserToken   getUserToken();
-    SisuToken   getSisuToken();
-    void        getMsalToken();
-    void        getWebToken();
-    // XstsToken   getXstsToken();
-    void getHomeStreamingToken();
+    UserToken getUserToken();
+    SisuToken getSisuToken();
+    MsalToken getMsalToken();
+    XstsToken getWebToken();
+    GSToken   getGSToken();
 
+private:
+    DeviceToken   getDeviceToken();
     CodeChallenge getCodeChallenge();
     std::string   genRandomState(int bytes);
 
@@ -69,12 +70,22 @@ public:
                                           const std::string&   state);
 
     // 执行 Sisu 授权，返回包含授权令牌的响应
-    void doSisuAuthorization(const UserToken&   user_token,
-                             const DeviceToken& device_token,
-                             const std::string& session_ID);
+    SisuToken doSisuAuthorization(const UserToken&   user_token,
+                                  const DeviceToken& device_token,
+                                  const std::string& session_ID);
 
     // 交换 code 获取用户令牌
-    void exchangeCodeForToken(std::string code, std::string code_verifier);
+    UserToken exchangeCodeForToken(std::string code, std::string code_verifier);
+
+    // 执行 XSTS 授权
+    XstsToken doXstsAuthorization(const SisuToken& sisu_token, const std::string& relyingParty);
+
+    MsalToken exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_token);
+
+    GSToken genStreamingToken(const XstsToken& xsts_token, std::string offering);
+
+    // 刷新用户令牌
+    UserToken refreshUserToken();
 
     // 使用 JwtKey 对数据进行签名
     std::vector<uint8_t> SignData(const std::string& url,
@@ -82,23 +93,15 @@ public:
                                   const std::string& payload,
                                   EVP_PKEY*          pkey);
 
-    // 执行 XSTS 授权
-    void doXstsAuthorization(const SisuToken& sisu_token, const std::string& relyingParty);
-
-    void exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_token);
-
-    void genStreamingToken(const XstsToken& xsts_token, std::string offering);
-
-    // 刷新用户令牌
-    void refreshUserToken();
-
 private:
-    std::filesystem::path          mTokenFile;
     std::unique_ptr<JwtKey>        mJwtKey;
     std::unique_ptr<UserToken>     mUserToken;
     std::unique_ptr<DeviceToken>   mDeviceToken;
     std::unique_ptr<CodeChallenge> mCodeChallenge;
     std::unique_ptr<SisuToken>     mSisuToken;
-    std::unique_ptr<XstsToken>     mHomeStreamingXsts;
+    std::unique_ptr<XstsToken>     mStreamingXsts;
     std::unique_ptr<XstsToken>     mWebToken;
+    std::unique_ptr<GSToken>       mGSToken;
+    std::filesystem::path          mTokenFilePath;
+    bool                           mIsAuthenticating = false;
 };

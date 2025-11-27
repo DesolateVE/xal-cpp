@@ -6,6 +6,25 @@
 #include <string>
 #include <vector>
 
+// 补充 std::optional 的 ADL 序列化以兼容当前环境
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <typename T> struct adl_serializer<std::optional<T>> {
+    static void to_json(json& j, const std::optional<T>& opt) {
+        if (opt)
+            j = *opt;
+        else
+            j = nullptr;
+    }
+    static void from_json(const json& j, std::optional<T>& opt) {
+        if (j.is_null())
+            opt.reset();
+        else
+            opt = j.get<T>();
+    }
+};
+NLOHMANN_JSON_NAMESPACE_END
+
+// ===== UserToken (MSA OAuth token) =====
 struct UserToken {
     std::string token_type;
     uint64_t    expires_in;
@@ -21,65 +40,64 @@ struct UserToken {
 };
 
 // ===== Sisu token models (from sisu/authenticate response) =====
-
-struct SisuTitleDisplayClaims {
-    struct Xti {
-        std::string tid;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(Xti, tid)
-    };
-    Xti xti;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuTitleDisplayClaims, xti)
-};
-
-struct SisuTitleToken {
-    SisuTitleDisplayClaims DisplayClaims;
-    std::string            IssueInstant;
-    std::string            NotAfter;
-    std::string            Token;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuTitleToken, DisplayClaims, IssueInstant, NotAfter, Token)
-};
-
-struct SisuUserDisplayClaims {
-    struct Xui {
-        std::string uhs;
-        std::string gtg;
-        std::string xid;
-        std::string mgt;
-        std::string mgs;
-        std::string umg;
-        std::string agg;
-        std::string usr;
-        std::string prv;
-        std::string ugc;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, uhs, gtg, xid, mgt, mgs, umg, agg, usr, prv, ugc)
-    };
-    std::vector<Xui> xui;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(SisuUserDisplayClaims, xui)
-};
-
-struct SisuUserToken {
-    SisuUserDisplayClaims DisplayClaims;
-    std::string           IssueInstant;
-    std::string           NotAfter;
-    std::string           Token;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuUserToken, DisplayClaims, IssueInstant, NotAfter, Token)
-};
-
-struct UcsMigrationResponse {
-    std::vector<std::string> gcsConsentsToOverride;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(UcsMigrationResponse, gcsConsentsToOverride)
-};
-
 struct SisuToken {
-    std::string          DeviceToken;
-    SisuTitleToken       TitleToken;
-    SisuUserToken        UserToken;           // user token
-    SisuUserToken        AuthorizationToken;  // authz token with xui
-    std::string          WebPage;
-    std::string          Sandbox;
-    bool                 UseModernGamertag;
-    UcsMigrationResponse UcsMigrationResponse;
-    std::string          Flow;
+    struct TitleDisplayClaims {
+        struct Xti {
+            std::string tid;
+            NLOHMANN_DEFINE_TYPE_INTRUSIVE(Xti, tid)
+        };
+        Xti xti;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(TitleDisplayClaims, xti)
+    };
+
+    struct _TitleToken {
+        TitleDisplayClaims DisplayClaims;
+        std::string        IssueInstant;
+        std::string        NotAfter;
+        std::string        Token;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(_TitleToken, DisplayClaims, IssueInstant, NotAfter, Token)
+    };
+
+    struct UserDisplayClaims {
+        struct Xui {
+            std::string uhs;
+            std::string gtg;
+            std::string xid;
+            std::string mgt;
+            std::string mgs;
+            std::string umg;
+            std::string agg;
+            std::string usr;
+            std::string prv;
+            std::string ugc;
+            NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, uhs, gtg, xid, mgt, mgs, umg, agg, usr, prv, ugc)
+        };
+        std::vector<Xui> xui;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(UserDisplayClaims, xui)
+    };
+
+    struct _UserToken {
+        UserDisplayClaims DisplayClaims;
+        std::string       IssueInstant;
+        std::string       NotAfter;
+        std::string       Token;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(_UserToken, DisplayClaims, IssueInstant, NotAfter, Token)
+    };
+
+    struct _UcsMigrationResponse {
+        std::vector<std::string> gcsConsentsToOverride;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(_UcsMigrationResponse, gcsConsentsToOverride)
+    };
+
+    std::string           DeviceToken;
+    _TitleToken           TitleToken;
+    _UserToken            UserToken;           // user token
+    _UserToken            AuthorizationToken;  // authz token with xui
+    std::string           WebPage;
+    std::string           Sandbox;
+    bool                  UseModernGamertag;
+    _UcsMigrationResponse UcsMigrationResponse;
+    std::string           Flow;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuToken,
                                    DeviceToken,
                                    TitleToken,
@@ -95,31 +113,81 @@ struct SisuToken {
 };
 
 struct XstsToken {
-    // 对应 XSTS 授权返回的 DisplayClaims.xui 列表
     struct DisplayClaimsType {
         struct Xui {
-            std::string gtg;  // Gamertag
-            std::string xid;  // Xbox ID
-            std::string uhs;  // User Hash
-            std::string agg;  // Age Group (Adult/Teen/...)
-            std::string usr;  // 用户特征串 (示例: "195 234")
-            std::string prv;  // 权限列表 (空格分隔数字)
-            std::string ugc;  // UGC 相关权限串
+            std::string gtg;
+            std::string xid;
+            std::string uhs;
+            std::string agg;
+            std::string usr;
+            std::string prv;
+            std::string ugc;
             NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, gtg, xid, uhs, agg, usr, prv, ugc)
         };
         std::vector<Xui> xui;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(DisplayClaimsType, xui)
     };
 
-    std::string        IssueInstant;    // 令牌签发时间 ISO8601
-    std::string        NotAfter;        // 过期时间 ISO8601
-    std::string        Token;           // XSTS JWT (加密包装)
-    DisplayClaimsType  DisplayClaims;   // 里面的 xui 数组
+    std::string       IssueInstant;
+    std::string       NotAfter;
+    std::string       Token;
+    DisplayClaimsType DisplayClaims;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(XstsToken, IssueInstant, NotAfter, Token, DisplayClaims)
     bool isExpired() const;
-    uint64_t secondsUntilExpiry() const;
+};
 
-  private:
-    // 简单解析形如 2025-11-26T08:32:10.5118384Z 的时间（忽略毫秒部分）
-    static std::chrono::system_clock::time_point parse_iso8601_utc(const std::string& s);
+struct MsalToken {
+    std::string lpt;
+    std::string refresh_token;
+    std::string user_id;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(MsalToken, lpt, refresh_token, user_id)
+};
+
+// ===== GSToken (Game Streaming Token from xhome/auth/authenticate) =====
+
+struct GSToken {
+    struct Region {
+        std::string                name;
+        std::string                baseUri;
+        std::optional<std::string> networkTestHostname;  // 可能为 null
+        bool                       isDefault;
+        std::optional<std::string> systemUpdateGroups;  // 可能为 null
+        int                        fallbackPriority;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+            Region, name, baseUri, networkTestHostname, isDefault, systemUpdateGroups, fallbackPriority)
+    };
+
+    struct Environment {
+        std::string                Name;
+        std::optional<std::string> AuthBaseUri;  // 可能为 null
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(Environment, Name, AuthBaseUri)
+    };
+
+    struct ClientCloudSettings {
+        std::vector<Environment> Environments;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(ClientCloudSettings, Environments)
+    };
+
+    struct OfferingSettings {
+        bool                       allowRegionSelection;
+        std::vector<Region>        regions;
+        std::optional<std::string> selectableServerTypes;  // 可能为 null
+        ClientCloudSettings        clientCloudSettings;
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(
+            OfferingSettings, allowRegionSelection, regions, selectableServerTypes, clientCloudSettings)
+    };
+
+    OfferingSettings offeringSettings;
+    std::string      market;
+    std::string      gsToken;
+    std::string      tokenType;
+    int64_t          durationInSeconds;
+    uint64_t         expires_at = 0;  // Unix 时间戳
+
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        GSToken, offeringSettings, market, gsToken, tokenType, durationInSeconds, expires_at)
+
+    // 计算并更新到期时间（调用者需手动调用）
+    void updateExpiry();
+    bool isExpired() const;
 };
