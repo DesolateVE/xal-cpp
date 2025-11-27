@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
     XAL xal(".xboxtoken.json");
 
     if (xal.isAuthenticating() == false) {
-        auto url = xal.getRedirectUri();
+        auto url = xal.getLoginUri();
         std::cout << "Please open the following URL in your browser:\n" << url << std::endl;
         std::cout << "After logging in, please enter the redirected URL: ";
         std::string redirect_url;

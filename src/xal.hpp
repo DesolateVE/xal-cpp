@@ -49,7 +49,7 @@ public:
     XAL(std::filesystem::path token_file);
     ~XAL();
 
-    std::string getRedirectUri();
+    std::string getLoginUri();
     void        authenticateUser(std::string redirectUri);
     bool        isAuthenticating() const { return mIsAuthenticating; }
 

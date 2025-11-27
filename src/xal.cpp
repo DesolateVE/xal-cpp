@@ -161,7 +161,7 @@ std::string XAL::genRandomState(int bytes) {
     return ssl_utils::Base64::encode_url_safe(random_bytes);
 }
 
-std::string XAL::getRedirectUri() {
+std::string XAL::getLoginUri() {
     auto deviceToken   = getDeviceToken();
     auto codeChallenge = getCodeChallenge();
     auto state         = genRandomState(64);
