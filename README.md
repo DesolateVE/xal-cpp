@@ -1,4 +1,4 @@
-# MSLogin (C++)
+# xal-cpp
 
 This project is a C++ implementation inspired by and functionally aligned with the Node.js project "xal-node" at: https://github.com/unknownskl/xal-node. Design, flow, and token models follow that reference; this repository provides a native C++ implementation.
 
