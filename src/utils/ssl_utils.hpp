@@ -31,7 +31,7 @@ namespace ssl_utils {
     }  // namespace Time
 
     namespace Uuid {
-        std::string generate_v3();
+        std::string generate_v4();
     }  // namespace Uuid
 
     namespace Signature {

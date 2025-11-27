@@ -68,9 +68,9 @@ XAL::DeviceToken XAL::getDeviceToken() {
 
     nlohmann::json body = {{"Properties",
                             {{"AuthMethod", "ProofOfPossession"},
-                             {"Id", ssl_utils::Uuid::generate_v3()},
+                             {"Id", ssl_utils::Uuid::generate_v4()},
                              {"DeviceType", "Android"},
-                             {"SerialNumber", ssl_utils::Uuid::generate_v3()},
+                             {"SerialNumber", ssl_utils::Uuid::generate_v4()},
                              {"Version", "15.0"},
                              {"ProofKey",
                               {{"use", "sig"},

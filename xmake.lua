@@ -1,16 +1,17 @@
 add_rules("mode.debug", "mode.release")
 
-add_requires("nlohmann_json", "cpp-httplib", "boost")
+add_requires("nlohmann_json", "cpp-httplib", "boost", "openssl3")
 add_requireconfs("cpp-httplib", {configs = {ssl = true}})
-add_requireconfs("boost", {configs = {all = true}})
+add_requireconfs("boost", {configs = {all = true, header_only = true}})
 -- add_requireconfs("*", {configs = {shared = true}})
 
 target("MSLoginLib")
     set_kind("static")
     set_languages("clatest", "cxxlatest", {public = true})
     add_files("src/**.cpp|test/*.cpp")
-    add_headerfiles("src/(**.hpp)")
-    add_packages("nlohmann_json", "cpp-httplib", "boost", {public = true})
+    add_includedirs("src", {public = true})
+    add_installfiles("src/(**.hpp)")
+    add_packages("nlohmann_json", "cpp-httplib", "boost", "openssl3", {public = true})
     add_defines("UNICODE", "_UNICODE", "WIN32_LEAN_AND_MEAN", "NOMINMAX")
 
 target("MSLoginTest")

@@ -100,21 +100,33 @@ namespace ssl_utils {
     }
 
     // Uuid
-    std::string Uuid::generate_v3() {
-        std::random_device              rd;
-        std::mt19937                    gen(rd());
-        std::uniform_int_distribution<> dis(0, 15);
-        std::stringstream               ss;
+    std::string Uuid::generate_v4() {
+        // 使用 thread_local 保证线程安全且每个线程只初始化一次
+        static std::random_device              rd;
+        static std::mt19937                    gen(rd());
+        static std::uniform_int_distribution<> dis(0, 15);
+        static std::uniform_int_distribution<> variant_dis(8, 11);
+
+        std::stringstream ss;
         ss << std::hex;
         ss << "{";
+
+        // xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
         for (int i = 0; i < 8; ++i) ss << dis(gen);
         ss << "-";
         for (int i = 0; i < 4; ++i) ss << dis(gen);
         ss << "-";
-        for (int i = 0; i < 4; ++i) ss << dis(gen);
+
+        // Version 4 (0100xxxx)
+        ss << "4";
+        for (int i = 0; i < 3; ++i) ss << dis(gen);
         ss << "-";
-        for (int i = 0; i < 4; ++i) ss << dis(gen);
+
+        // Variant (10xxxxxx)
+        ss << variant_dis(gen);
+        for (int i = 0; i < 3; ++i) ss << dis(gen);
         ss << "-";
+
         for (int i = 0; i < 12; ++i) ss << dis(gen);
         ss << "}";
         return ss.str();
