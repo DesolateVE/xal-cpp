@@ -6,6 +6,8 @@ window.__automation = {
     ERR_SUCCESS: 0,           // 成功
     ERR_EXCEPTION: 1,         // 处理过程中发生异常
     ERR_NO_HANDLER: 2,        // 没有对应处理函数
+    ERR_NOT_FOUND: 3,         // 元素未找到
+    ERR_TIMEOUT: 4,           // 超时
 
     // 登录凭据（由 C++ 设置）
     credentials: {
@@ -74,21 +76,24 @@ window.__automation = {
     // 查找元素（返回是否存在）
     querySelector: function(selector) {
         const element = document.querySelector(selector);
-        return element !== null;
+        if (element) {
+            return JSON.stringify({ errcode: this.ERR_SUCCESS });
+        }
+        return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
     },
 
     // 点击元素
     click: function(selector) {
         const element = document.querySelector(selector);
         if (!element) {
-            return JSON.stringify({ success: false, error: 'Element not found: ' + selector });
+            return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
         }
         
         try {
             element.click();
-            return JSON.stringify({ success: true });
+            return JSON.stringify({ errcode: this.ERR_SUCCESS });
         } catch (e) {
-            return JSON.stringify({ success: false, error: e.message });
+            return JSON.stringify({ errcode: this.ERR_EXCEPTION, message: e.message });
         }
     },
 
@@ -98,17 +103,17 @@ window.__automation = {
         for (const button of buttons) {
             if (button.textContent.trim() === text) {
                 button.click();
-                return JSON.stringify({ success: true });
+                return JSON.stringify({ errcode: this.ERR_SUCCESS });
             }
         }
-        return JSON.stringify({ success: false, error: 'Button not found: ' + text });
+        return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Button not found: ' + text });
     },
 
     // 填写输入框（使用原生 setter 触发 React）
     type: function(selector, value) {
         const element = document.querySelector(selector);
         if (!element) {
-            return JSON.stringify({ success: false, error: 'Element not found: ' + selector });
+            return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
         }
 
         try {
@@ -132,9 +137,9 @@ window.__automation = {
             element.dispatchEvent(new Event('change', { bubbles: true }));
             element.blur();
 
-            return JSON.stringify({ success: true, value: element.value });
+            return JSON.stringify({ errcode: this.ERR_SUCCESS, value: element.value });
         } catch (e) {
-            return JSON.stringify({ success: false, error: e.message });
+            return JSON.stringify({ errcode: this.ERR_EXCEPTION, message: e.message });
         }
     },
 
@@ -142,31 +147,32 @@ window.__automation = {
     getText: function(selector) {
         const element = document.querySelector(selector);
         if (!element) {
-            return JSON.stringify({ success: false, error: 'Element not found: ' + selector });
+            return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
         }
-        return JSON.stringify({ success: true, text: element.textContent.trim() });
+        return JSON.stringify({ errcode: this.ERR_SUCCESS, text: element.textContent.trim() });
     },
 
     // 获取输入框的值
     getValue: function(selector) {
         const element = document.querySelector(selector);
         if (!element) {
-            return JSON.stringify({ success: false, error: 'Element not found: ' + selector });
+            return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
         }
-        return JSON.stringify({ success: true, value: element.value });
+        return JSON.stringify({ errcode: this.ERR_SUCCESS, value: element.value });
     },
 
     // 等待元素出现（轮询版本，返回是否成功）
     waitForSelector: function(selector, timeoutMs) {
+        const self = this;
         timeoutMs = timeoutMs || 5000;
         const startTime = Date.now();
         
         return new Promise((resolve) => {
             const check = () => {
                 if (document.querySelector(selector)) {
-                    resolve(JSON.stringify({ success: true }));
+                    resolve(JSON.stringify({ errcode: self.ERR_SUCCESS }));
                 } else if (Date.now() - startTime > timeoutMs) {
-                    resolve(JSON.stringify({ success: false, error: 'Timeout waiting for: ' + selector }));
+                    resolve(JSON.stringify({ errcode: self.ERR_TIMEOUT, message: 'Timeout waiting for: ' + selector }));
                 } else {
                     setTimeout(check, 100);
                 }
@@ -179,9 +185,9 @@ window.__automation = {
     getPageTitle: function() {
         const titleElement = document.querySelector('[data-testid="title"]');
         if (titleElement) {
-            return JSON.stringify({ success: true, title: titleElement.textContent.trim() });
+            return JSON.stringify({ errcode: this.ERR_SUCCESS, title: titleElement.textContent.trim() });
         }
-        return JSON.stringify({ success: false, error: 'Title element not found' });
+        return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Title element not found' });
     },
 
     // 列出所有可见按钮的文本
@@ -194,7 +200,7 @@ window.__automation = {
                 buttonTexts.push(text);
             }
         }
-        return JSON.stringify({ success: true, buttons: buttonTexts });
+        return JSON.stringify({ errcode: this.ERR_SUCCESS, buttons: buttonTexts });
     }
 };
 

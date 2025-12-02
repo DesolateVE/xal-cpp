@@ -15,11 +15,13 @@ class WebView2Window;
 // WebView2 自动化操作封装类（类似 Playwright）
 class WebView2Automation {
 public:
-    // 错误码定义
-    enum ActionResult {
-        ACTION_SUCCESS = 0,      // 成功
-        ACTION_EXCEPTION = 1,    // 处理过程中发生异常
-        ACTION_NO_HANDLER = 2    // 没有对应处理函数
+    // 错误码定义（与 browser_automation.js 保持一致）
+    enum ErrorCode {
+        ERR_SUCCESS = 0,      // 成功
+        ERR_EXCEPTION = 1,    // 处理过程中发生异常
+        ERR_NO_HANDLER = 2,   // 没有对应处理函数
+        ERR_NOT_FOUND = 3,    // 元素未找到
+        ERR_TIMEOUT = 4       // 超时
     };
 
     // 接收 WebView2Window 引用
@@ -36,7 +38,7 @@ public:
     // 执行指定页面的 action
     // title: 页面标题，outMessage: 返回错误信息
     // 返回错误码: 0=成功, 1=异常, 2=无处理函数
-    ActionResult DoAction(const std::string& title, std::string* outMessage = nullptr);
+    ErrorCode DoAction(const std::string& title, std::string* outMessage = nullptr);
 
     // ===== 基础操作 =====
 
@@ -73,9 +75,6 @@ public:
 
     // 执行 JS 脚本并同步获取返回值（阻塞等待）
     bool ExecuteScriptSync(const std::string& script, std::string& result);
-
-    // 延迟（毫秒）
-    static void Sleep(int ms);
 
 private:
     WebView2Window& m_window;

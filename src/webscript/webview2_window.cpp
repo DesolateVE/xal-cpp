@@ -9,17 +9,15 @@
 #define WM_WEBVIEW_EXEC_SCRIPT (WM_APP + 3)   // 执行脚本（同步）
 #define WM_WEBVIEW_INJECT_SCRIPT (WM_APP + 4) // 注入文档创建时脚本
 
-WebView2Window::WebView2Window() {}
+WebView2Window::WebView2Window(const WindowParams &params)
+    : m_params(params)
+{
+}
 
 WebView2Window::~WebView2Window()
 {
     Close();
     Join();
-}
-
-void WebView2Window::SetWindowParams(const WindowParams &params)
-{
-    m_params = params;
 }
 
 bool WebView2Window::CreateWindowInternal()
@@ -177,22 +175,24 @@ HRESULT WebView2Window::InitializeController(HRESULT result, ICoreWebView2Contro
     // 注册导航开始事件（可捕获自定义协议如 ms-xal-://）
     m_webview->add_NavigationStarting(
         Callback<ICoreWebView2NavigationStartingEventHandler>(
-            [this](ICoreWebView2* sender, ICoreWebView2NavigationStartingEventArgs* args) -> HRESULT {
+            [this](ICoreWebView2 *sender, ICoreWebView2NavigationStartingEventArgs *args) -> HRESULT
+            {
                 wil::unique_cotaskmem_string uri;
                 args->get_Uri(&uri);
                 std::string url = std::WideToUtf8(uri.get());
-                
-                if (m_navigationStartingCallback) {
+
+                if (m_navigationStartingCallback)
+                {
                     bool cancel = m_navigationStartingCallback(url);
-                    if (cancel) {
+                    if (cancel)
+                    {
                         args->put_Cancel(TRUE);
                     }
                 }
                 return S_OK;
-            }
-        ).Get(),
-        nullptr
-    );
+            })
+            .Get(),
+        nullptr);
 
     // 打开 DevTools 便于调试（可注释掉）
     if (m_webview)

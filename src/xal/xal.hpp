@@ -1,15 +1,15 @@
 #pragma once
 
-#include <openssl/evp.h>
-
 #include <filesystem>
 #include <map>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <openssl/evp.h>
 #include <string>
 
 #include "utils/jwt_key.hpp"
 #include "utils/token_store.hpp"
+#include "utils/logger.hpp"
 
 class XAL {
     struct CodeChallenge {
@@ -52,6 +52,7 @@ public:
     std::string getLoginUri();
     void        authenticateUser(std::string redirectUri);
     bool        isAuthenticating() const { return mIsAuthenticating; }
+    void        saveTokensToFile();
 
     UserToken getUserToken();
     SisuToken getSisuToken();
@@ -65,14 +66,10 @@ private:
     std::string   genRandomState(int bytes);
 
     // 执行 Sisu 认证，返回包含用户令牌的响应
-    SisuAuthResponse doSisuAuthentication(const DeviceToken&   device_token,
-                                          const CodeChallenge& code_challenge,
-                                          const std::string&   state);
+    SisuAuthResponse doSisuAuthentication(const DeviceToken& device_token, const CodeChallenge& code_challenge, const std::string& state);
 
     // 执行 Sisu 授权，返回包含授权令牌的响应
-    SisuToken doSisuAuthorization(const UserToken&   user_token,
-                                  const DeviceToken& device_token,
-                                  const std::string& session_ID);
+    SisuToken doSisuAuthorization(const UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID);
 
     // 交换 code 获取用户令牌
     UserToken exchangeCodeForToken(std::string code, std::string code_verifier);
@@ -88,10 +85,7 @@ private:
     UserToken refreshUserToken();
 
     // 使用 JwtKey 对数据进行签名
-    std::vector<uint8_t> SignData(const std::string& url,
-                                  const std::string& authorization_token,
-                                  const std::string& payload,
-                                  EVP_PKEY*          pkey);
+    std::vector<uint8_t> SignData(const std::string& url, const std::string& authorization_token, const std::string& payload, EVP_PKEY* pkey);
 
 private:
     std::unique_ptr<JwtKey>        mJwtKey;

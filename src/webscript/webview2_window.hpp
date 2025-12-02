@@ -27,11 +27,8 @@ public:
         HWND parent = nullptr;
     };
 
-    WebView2Window();
+    WebView2Window(const WindowParams &params);
     ~WebView2Window();
-
-    // 设置窗口参数（必须在 Run 之前调用）
-    void SetWindowParams(const WindowParams &params);
 
     // 运行窗口（异步在独立线程运行）
     void Run();
@@ -52,7 +49,7 @@ public:
 
     // 设置导航监听回调（可捕获所有导航，包括自定义协议如 ms-xal-://）
     // 回调返回 true 表示已处理（取消导航），返回 false 表示继续
-    void SetNavigationStartingCallback(std::function<bool(const std::string& url)> callback) { m_navigationStartingCallback = callback; }
+    void SetNavigationStartingCallback(std::function<bool(const std::string &url)> callback) { m_navigationStartingCallback = callback; }
 
     // 阻塞等待 WebView2 就绪（返回是否成功初始化）
     bool WaitForReady(int timeoutMs = -1);
@@ -101,7 +98,7 @@ private:
     std::function<void()> m_readyCallback;
 
     // 导航回调
-    std::function<bool(const std::string& url)> m_navigationStartingCallback;
+    std::function<bool(const std::string &url)> m_navigationStartingCallback;
 
     // 窗口参数
     WindowParams m_params;
