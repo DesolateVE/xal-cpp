@@ -1,8 +1,8 @@
 ﻿#include "WebView2Automation.hpp"
 #include "webview2_window.hpp"
+#include "../utils/logger.hpp"
 #include <fstream>
 #include <sstream>
-#include <iostream>
 #include <thread>
 #include <chrono>
 
@@ -17,7 +17,7 @@ bool WebView2Automation::InjectHelperScript()
     std::ifstream file("browser_automation.js");
     if (!file.is_open())
     {
-        std::cerr << "[Automation] Failed to open browser_automation.js" << std::endl;
+        LOG_ERROR("[自动化] 打开 browser_automation.js 失败");
         return false;
     }
 
@@ -28,11 +28,11 @@ bool WebView2Automation::InjectHelperScript()
     // 调用 WebView2Window 的线程安全接口
     if (!m_window.AddScriptToExecuteOnDocumentCreated(scriptContent))
     {
-        std::cerr << "[Automation] Failed to inject helper script" << std::endl;
+        LOG_ERROR("[自动化] 注入辅助脚本失败");
         return false;
     }
 
-    std::cout << "[Automation] Helper script injected successfully" << std::endl;
+    LOG_INFO("[自动化] 辅助脚本注入成功");
     return true;
 }
 
@@ -69,8 +69,8 @@ bool WebView2Automation::ParseJsonResult(const std::string &jsonStr, json &outJs
     }
     catch (const json::parse_error &e)
     {
-        std::cerr << "[Automation] JSON parse error: " << e.what() << std::endl;
-        std::cerr << "[Automation] JSON string: " << jsonStr << std::endl;
+        LOG_ERROR("[自动化] JSON 解析错误: " + std::string(e.what()));
+        LOG_DEBUG("[自动化] JSON 字符串: " + jsonStr);
         return false;
     }
 }
@@ -196,7 +196,7 @@ bool WebView2Automation::Type(const std::string &selector, const std::string &va
     int errcode = j["errcode"].get<int>();
     if (errcode == ERR_SUCCESS)
     {
-        std::cout << "[Automation] Typed into " << selector << ": " << value << std::endl;
+        LOG_DEBUG("[自动化] 输入到 " + selector + ": " + value);
         return true;
     }
     else
@@ -366,20 +366,20 @@ bool WebView2Automation::SetCredentials(const std::string &username, const std::
 
     if (!ExecuteScriptSync(script, result))
     {
-        std::cerr << "[Automation] SetCredentials: ExecuteScript failed" << std::endl;
+        LOG_ERROR("[自动化] 设置凭证: 执行脚本失败");
         return false;
     }
 
     json j;
     if (!ParseJsonResult(result, j))
     {
-        std::cerr << "[Automation] SetCredentials: JSON parse failed" << std::endl;
+        LOG_ERROR("[自动化] 设置凭证: JSON 解析失败");
         return false;
     }
 
     if (j["errcode"].get<int>() == ERR_SUCCESS)
     {
-        std::cout << "[Automation] Credentials set successfully" << std::endl;
+        LOG_INFO("[自动化] 凭证设置成功");
         return true;
     }
 

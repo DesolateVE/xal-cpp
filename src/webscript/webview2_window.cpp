@@ -1,7 +1,7 @@
 #include "webview2_window.hpp"
 #include "../utils/helper.hpp"
+#include "../utils/logger.hpp"
 
-#include <iostream>
 #include <shlobj.h> // SHGetKnownFolderPath
 
 // 自定义窗口消息
@@ -106,7 +106,7 @@ void WebView2Window::InitializeWebView()
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>([this](HRESULT result, ICoreWebView2Environment *env) -> HRESULT
                                                                              {
             if (FAILED(result)) {
-                std::wcerr << L"创建 WebView2 环境失败: 0x" << std::hex << result << std::endl;
+                LOG_ERROR("[WebView2] 创建环境失败: 0x" + std::to_string(result));
                 return result;
             }
 
@@ -117,7 +117,7 @@ void WebView2Window::InitializeWebView()
                     wil::com_ptr<ICoreWebView2ControllerOptions> options;
                     if (SUCCEEDED(env10->CreateCoreWebView2ControllerOptions(&options))) {
                         options->put_IsInPrivateModeEnabled(TRUE);
-                        std::wcout << L"[无痕模式] InPrivate mode enabled" << std::endl;
+                        LOG_INFO("[隐私模式] InPrivate 模式已启用");
                         
                         // 使用 options 创建 controller
                         env10->CreateCoreWebView2ControllerWithOptions(
@@ -152,7 +152,7 @@ HRESULT WebView2Window::InitializeController(HRESULT result, ICoreWebView2Contro
 {
     if (FAILED(result))
     {
-        std::wcerr << L"创建 WebView2 控制器失败: 0x" << std::hex << result << std::endl;
+        LOG_ERROR("[WebView2] 创建控制器失败: 0x" + std::to_string(result));
         return result;
     }
 
@@ -245,7 +245,7 @@ bool WebView2Window::Navigate(const std::string &url)
 {
     if (!m_webview)
     {
-        std::cerr << "[Navigate] WebView2 not initialized" << std::endl;
+        LOG_ERROR("[导航] WebView2 未初始化");
         return false;
     }
 
@@ -264,7 +264,7 @@ bool WebView2Window::Navigate(const std::string &url)
     HRESULT hr = m_webview->Navigate(wUrl.c_str());
     if (FAILED(hr))
     {
-        std::cerr << "[Navigate] Failed to navigate: 0x" << std::hex << hr << std::endl;
+        LOG_ERROR("[导航] 导航失败: 0x" + std::to_string(hr));
         return false;
     }
 
@@ -298,7 +298,7 @@ bool WebView2Window::ExecuteScriptSync(const std::string &script, std::string &r
 {
     if (!m_webview || !m_hWnd)
     {
-        std::cerr << "[ExecuteScriptSync] WebView2 not initialized" << std::endl;
+        LOG_ERROR("[执行脚本] WebView2 未初始化");
         return false;
     }
 
@@ -308,7 +308,7 @@ bool WebView2Window::ExecuteScriptSync(const std::string &script, std::string &r
     // 投递消息到 UI 线程
     if (!PostMessage(m_hWnd, WM_WEBVIEW_EXEC_SCRIPT, 0, reinterpret_cast<LPARAM>(&payload)))
     {
-        std::cerr << "[ExecuteScriptSync] PostMessage failed" << std::endl;
+        LOG_ERROR("[执行脚本] PostMessage 失败");
         return false;
     }
 
@@ -318,14 +318,14 @@ bool WebView2Window::ExecuteScriptSync(const std::string &script, std::string &r
         if (!payload.cv.wait_for(lock, std::chrono::seconds(30), [&payload]
                                  { return payload.done; }))
         {
-            std::cerr << "[ExecuteScriptSync] Timeout" << std::endl;
+            LOG_ERROR("[执行脚本] 超时");
             return false;
         }
     }
 
     if (FAILED(payload.hr))
     {
-        std::cerr << "[ExecuteScriptSync] Failed: 0x" << std::hex << payload.hr << std::endl;
+        LOG_ERROR("[执行脚本] 失败: 0x" + std::to_string(payload.hr));
         return false;
     }
 
@@ -337,7 +337,7 @@ bool WebView2Window::AddScriptToExecuteOnDocumentCreated(const std::string &scri
 {
     if (!m_webview || !m_hWnd)
     {
-        std::cerr << "[AddScriptToExecuteOnDocumentCreated] WebView2 not initialized" << std::endl;
+        LOG_ERROR("[注入脚本] WebView2 未初始化");
         return false;
     }
 
@@ -347,7 +347,7 @@ bool WebView2Window::AddScriptToExecuteOnDocumentCreated(const std::string &scri
     // 投递消息到 UI 线程
     if (!PostMessage(m_hWnd, WM_WEBVIEW_INJECT_SCRIPT, 0, reinterpret_cast<LPARAM>(&payload)))
     {
-        std::cerr << "[AddScriptToExecuteOnDocumentCreated] PostMessage failed" << std::endl;
+        LOG_ERROR("[注入脚本] PostMessage 失败");
         return false;
     }
 
@@ -357,14 +357,14 @@ bool WebView2Window::AddScriptToExecuteOnDocumentCreated(const std::string &scri
         if (!payload.cv.wait_for(lock, std::chrono::seconds(10), [&payload]
                                  { return payload.done; }))
         {
-            std::cerr << "[AddScriptToExecuteOnDocumentCreated] Timeout" << std::endl;
+            LOG_ERROR("[注入脚本] 超时");
             return false;
         }
     }
 
     if (FAILED(payload.hr))
     {
-        std::cerr << "[AddScriptToExecuteOnDocumentCreated] Failed: 0x" << std::hex << payload.hr << std::endl;
+        LOG_ERROR("[注入脚本] 失败: 0x" + std::to_string(payload.hr));
         return false;
     }
 
@@ -395,7 +395,7 @@ void WebView2Window::ThreadProc()
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(hr))
     {
-        std::wcerr << L"COM 初始化失败: 0x" << std::hex << hr << std::endl;
+        LOG_ERROR("[线程] COM 初始化失败: 0x" + std::to_string(hr));
         return;
     }
 
@@ -439,7 +439,7 @@ void WebView2Window::Run()
     // 异步：在独立线程创建窗口
     if (m_hWnd || m_thread)
     {
-        std::wcerr << L"错误：窗口已创建" << std::endl;
+        LOG_ERROR("[运行] 窗口已创建");
         return;
     }
     m_thread = std::make_unique<std::thread>(&WebView2Window::ThreadProc, this);
@@ -499,7 +499,7 @@ LRESULT CALLBACK WebView2Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             if (pUrl && pWindow->m_webview)
             {
                 pWindow->m_webview->Navigate(pUrl->c_str());
-                std::wcout << L"导航到: " << *pUrl << std::endl;
+                LOG_INFO("[消息处理] 导航到: " + std::WideToUtf8(*pUrl));
                 delete pUrl;
             }
         }
