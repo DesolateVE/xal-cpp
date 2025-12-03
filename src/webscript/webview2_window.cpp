@@ -195,10 +195,10 @@ HRESULT WebView2Window::InitializeController(HRESULT result, ICoreWebView2Contro
         nullptr);
 
     // 打开 DevTools 便于调试（可注释掉）
-    if (m_webview)
-    {
-        m_webview->OpenDevToolsWindow();
-    }
+    // if (m_webview)
+    // {
+    //     m_webview->OpenDevToolsWindow();
+    // }
 
     // 标记就绪并通知等待者
     {

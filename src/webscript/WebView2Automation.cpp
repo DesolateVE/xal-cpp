@@ -1,22 +1,27 @@
 ﻿#include "WebView2Automation.hpp"
-#include "webview2_window.hpp"
-#include "../utils/logger.hpp"
+
+#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <thread>
-#include <chrono>
 
-WebView2Automation::WebView2Automation(WebView2Window &window)
-    : m_window(window)
-{
-}
+#include "../utils/logger.hpp"
+#include "webview2_window.hpp"
 
-bool WebView2Automation::InjectHelperScript()
-{
+WebView2Automation::WebView2Automation(WebView2Window& window)
+    : m_window(window) {}
+
+bool WebView2Automation::InjectHelperScript() {
     // 读取 browser_automation.js 文件
-    std::ifstream file("browser_automation.js");
-    if (!file.is_open())
-    {
+
+    // 获取执行程序目录
+    char exePath[MAX_PATH];
+    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+    std::filesystem::path exeDir     = std::filesystem::path(exePath).parent_path();
+    std::filesystem::path jsFilePath = exeDir / "browser_automation.js";
+
+    std::ifstream file(jsFilePath);
+    if (!file.is_open()) {
         LOG_ERROR("[自动化] 打开 browser_automation.js 失败");
         return false;
     }
@@ -26,8 +31,7 @@ bool WebView2Automation::InjectHelperScript()
     std::string scriptContent = buffer.str();
 
     // 调用 WebView2Window 的线程安全接口
-    if (!m_window.AddScriptToExecuteOnDocumentCreated(scriptContent))
-    {
+    if (!m_window.AddScriptToExecuteOnDocumentCreated(scriptContent)) {
         LOG_ERROR("[自动化] 注入辅助脚本失败");
         return false;
     }
@@ -36,22 +40,18 @@ bool WebView2Automation::InjectHelperScript()
     return true;
 }
 
-bool WebView2Automation::ExecuteScriptSync(const std::string &script, std::string &result)
-{
+bool WebView2Automation::ExecuteScriptSync(const std::string& script, std::string& result) {
     // 直接调用 WebView2Window 的线程安全接口
-    if (!m_window.ExecuteScriptSync(script, result))
-    {
+    if (!m_window.ExecuteScriptSync(script, result)) {
         return false;
     }
 
     // 去除 JSON 字符串的首尾引号（ExecuteScript 返回的是 JSON 编码的字符串）
-    if (result.length() >= 2 && result.front() == '"' && result.back() == '"')
-    {
+    if (result.length() >= 2 && result.front() == '"' && result.back() == '"') {
         result = result.substr(1, result.length() - 2);
         // 解码转义字符
         size_t pos = 0;
-        while ((pos = result.find("\\\"", pos)) != std::string::npos)
-        {
+        while ((pos = result.find("\\\"", pos)) != std::string::npos) {
             result.replace(pos, 2, "\"");
             pos += 1;
         }
@@ -60,117 +60,94 @@ bool WebView2Automation::ExecuteScriptSync(const std::string &script, std::strin
     return true;
 }
 
-bool WebView2Automation::ParseJsonResult(const std::string &jsonStr, json &outJson)
-{
-    try
-    {
+bool WebView2Automation::ParseJsonResult(const std::string& jsonStr, json& outJson) {
+    try {
         outJson = json::parse(jsonStr);
         return true;
-    }
-    catch (const json::parse_error &e)
-    {
+    } catch (const json::parse_error& e) {
         LOG_ERROR("[自动化] JSON 解析错误: " + std::string(e.what()));
         LOG_DEBUG("[自动化] JSON 字符串: " + jsonStr);
         return false;
     }
 }
 
-bool WebView2Automation::QuerySelector(const std::string &selector)
-{
+bool WebView2Automation::QuerySelector(const std::string& selector) {
     std::string script = "window.__automation.querySelector('" + selector + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         return false;
     }
 
     return j["errcode"].get<int>() == ERR_SUCCESS;
 }
 
-bool WebView2Automation::Click(const std::string &selector, std::string *error)
-{
+bool WebView2Automation::Click(const std::string& selector, std::string* error) {
     std::string script = "window.__automation.click('" + selector + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         if (error)
             *error = "ExecuteScript failed";
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         if (error)
             *error = "JSON parse failed";
         return false;
     }
 
     int errcode = j["errcode"].get<int>();
-    if (errcode == ERR_SUCCESS)
-    {
+    if (errcode == ERR_SUCCESS) {
         return true;
-    }
-    else
-    {
-        if (error && j.contains("message"))
-        {
+    } else {
+        if (error && j.contains("message")) {
             *error = j["message"].get<std::string>();
         }
         return false;
     }
 }
 
-bool WebView2Automation::ClickButton(const std::string &buttonText, std::string *error)
-{
+bool WebView2Automation::ClickButton(const std::string& buttonText, std::string* error) {
     std::string script = "window.__automation.clickButton('" + buttonText + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         if (error)
             *error = "ExecuteScript failed";
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         if (error)
             *error = "JSON parse failed";
         return false;
     }
 
     int errcode = j["errcode"].get<int>();
-    if (errcode == ERR_SUCCESS)
-    {
+    if (errcode == ERR_SUCCESS) {
         return true;
-    }
-    else
-    {
-        if (error && j.contains("message"))
-        {
+    } else {
+        if (error && j.contains("message")) {
             *error = j["message"].get<std::string>();
         }
         return false;
     }
 }
 
-bool WebView2Automation::Type(const std::string &selector, const std::string &value, std::string *error)
-{
+bool WebView2Automation::Type(const std::string& selector, const std::string& value, std::string* error) {
     // 转义单引号
     std::string escapedValue = value;
-    size_t pos = 0;
-    while ((pos = escapedValue.find("'", pos)) != std::string::npos)
-    {
+    size_t      pos          = 0;
+    while ((pos = escapedValue.find("'", pos)) != std::string::npos) {
         escapedValue.replace(pos, 1, "\\'");
         pos += 2;
     }
@@ -178,165 +155,135 @@ bool WebView2Automation::Type(const std::string &selector, const std::string &va
     std::string script = "window.__automation.type('" + selector + "', '" + escapedValue + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         if (error)
             *error = "ExecuteScript failed";
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         if (error)
             *error = "JSON parse failed";
         return false;
     }
 
     int errcode = j["errcode"].get<int>();
-    if (errcode == ERR_SUCCESS)
-    {
+    if (errcode == ERR_SUCCESS) {
         LOG_DEBUG("[自动化] 输入到 " + selector + ": " + value);
         return true;
-    }
-    else
-    {
-        if (error && j.contains("message"))
-        {
+    } else {
+        if (error && j.contains("message")) {
             *error = j["message"].get<std::string>();
         }
         return false;
     }
 }
 
-bool WebView2Automation::GetText(const std::string &selector, std::string &outText)
-{
+bool WebView2Automation::GetText(const std::string& selector, std::string& outText) {
     std::string script = "window.__automation.getText('" + selector + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         return false;
     }
 
-    if (j["errcode"].get<int>() == ERR_SUCCESS)
-    {
+    if (j["errcode"].get<int>() == ERR_SUCCESS) {
         outText = j["text"].get<std::string>();
         return true;
     }
     return false;
 }
 
-bool WebView2Automation::GetValue(const std::string &selector, std::string &outValue)
-{
+bool WebView2Automation::GetValue(const std::string& selector, std::string& outValue) {
     std::string script = "window.__automation.getValue('" + selector + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         return false;
     }
 
-    if (j["errcode"].get<int>() == ERR_SUCCESS)
-    {
+    if (j["errcode"].get<int>() == ERR_SUCCESS) {
         outValue = j["value"].get<std::string>();
         return true;
     }
     return false;
 }
 
-bool WebView2Automation::WaitForSelector(const std::string &selector, int timeoutMs, std::string *error)
-{
+bool WebView2Automation::WaitForSelector(const std::string& selector, int timeoutMs, std::string* error) {
     std::string script = "await window.__automation.waitForSelector('" + selector + "', " + std::to_string(timeoutMs) + ")";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         if (error)
             *error = "ExecuteScript failed";
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         if (error)
             *error = "JSON parse failed";
         return false;
     }
 
     int errcode = j["errcode"].get<int>();
-    if (errcode == ERR_SUCCESS)
-    {
+    if (errcode == ERR_SUCCESS) {
         return true;
-    }
-    else
-    {
-        if (error && j.contains("message"))
-        {
+    } else {
+        if (error && j.contains("message")) {
             *error = j["message"].get<std::string>();
         }
         return false;
     }
 }
 
-bool WebView2Automation::GetPageTitle(std::string &outTitle)
-{
+bool WebView2Automation::GetPageTitle(std::string& outTitle) {
     std::string script = "window.__automation.getPageTitle()";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         return false;
     }
 
-    if (j["errcode"].get<int>() == ERR_SUCCESS)
-    {
+    if (j["errcode"].get<int>() == ERR_SUCCESS) {
         outTitle = j["title"].get<std::string>();
         return true;
     }
     return false;
 }
 
-bool WebView2Automation::ListButtons(std::vector<std::string> &outButtons)
-{
+bool WebView2Automation::ListButtons(std::vector<std::string>& outButtons) {
     std::string script = "window.__automation.listButtons()";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         return false;
     }
 
-    if (j["errcode"].get<int>() == ERR_SUCCESS)
-    {
+    if (j["errcode"].get<int>() == ERR_SUCCESS) {
         outButtons.clear();
-        for (const auto &btn : j["buttons"])
-        {
+        for (const auto& btn : j["buttons"]) {
             outButtons.push_back(btn.get<std::string>());
         }
         return true;
@@ -344,41 +291,33 @@ bool WebView2Automation::ListButtons(std::vector<std::string> &outButtons)
     return false;
 }
 
-bool WebView2Automation::SetCredentials(const std::string &username, const std::string &password)
-{
+bool WebView2Automation::SetCredentials(const std::string& username, const std::string& password) {
     // 转义单引号
-    auto escapeString = [](const std::string &str)
-    {
+    auto escapeString = [](const std::string& str) {
         std::string escaped = str;
-        size_t pos = 0;
-        while ((pos = escaped.find("'", pos)) != std::string::npos)
-        {
+        size_t      pos     = 0;
+        while ((pos = escaped.find("'", pos)) != std::string::npos) {
             escaped.replace(pos, 1, "\\'");
             pos += 2;
         }
         return escaped;
     };
 
-    std::string script = "window.__automation.setCredentials('" +
-                         escapeString(username) + "', '" +
-                         escapeString(password) + "')";
+    std::string script = "window.__automation.setCredentials('" + escapeString(username) + "', '" + escapeString(password) + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         LOG_ERROR("[自动化] 设置凭证: 执行脚本失败");
         return false;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         LOG_ERROR("[自动化] 设置凭证: JSON 解析失败");
         return false;
     }
 
-    if (j["errcode"].get<int>() == ERR_SUCCESS)
-    {
+    if (j["errcode"].get<int>() == ERR_SUCCESS) {
         LOG_INFO("[自动化] 凭证设置成功");
         return true;
     }
@@ -386,13 +325,11 @@ bool WebView2Automation::SetCredentials(const std::string &username, const std::
     return false;
 }
 
-WebView2Automation::ErrorCode WebView2Automation::DoAction(const std::string &title, std::string *outMessage)
-{
+WebView2Automation::ErrorCode WebView2Automation::DoAction(const std::string& title, std::string* outMessage) {
     // 转义单引号
     std::string escapedTitle = title;
-    size_t pos = 0;
-    while ((pos = escapedTitle.find("'", pos)) != std::string::npos)
-    {
+    size_t      pos          = 0;
+    while ((pos = escapedTitle.find("'", pos)) != std::string::npos) {
         escapedTitle.replace(pos, 1, "\\'");
         pos += 2;
     }
@@ -400,30 +337,26 @@ WebView2Automation::ErrorCode WebView2Automation::DoAction(const std::string &ti
     std::string script = "window.__automation.doAction('" + escapedTitle + "')";
     std::string result;
 
-    if (!ExecuteScriptSync(script, result))
-    {
+    if (!ExecuteScriptSync(script, result)) {
         if (outMessage)
             *outMessage = "ExecuteScript failed";
         return ERR_EXCEPTION;
     }
 
     json j;
-    if (!ParseJsonResult(result, j))
-    {
+    if (!ParseJsonResult(result, j)) {
         if (outMessage)
             *outMessage = "JSON parse failed: " + result;
         return ERR_EXCEPTION;
     }
 
     // 提取错误信息
-    if (outMessage && j.contains("message"))
-    {
+    if (outMessage && j.contains("message")) {
         *outMessage = j["message"].get<std::string>();
     }
 
     // 返回错误码
-    if (j.contains("errcode"))
-    {
+    if (j.contains("errcode")) {
         int errcode = j["errcode"].get<int>();
         return static_cast<ErrorCode>(errcode);
     }
