@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include "../mslogin_export.hpp"
 
 // 补充 std::optional 的 ADL 序列化以兼容当前环境
 NLOHMANN_JSON_NAMESPACE_BEGIN
@@ -25,7 +26,7 @@ template <typename T> struct adl_serializer<std::optional<T>> {
 NLOHMANN_JSON_NAMESPACE_END
 
 // ===== UserToken (MSA OAuth token) =====
-struct UserToken {
+struct MSLOGIN_API UserToken {
     std::string token_type;
     uint64_t    expires_in;
     std::string scope;
@@ -40,7 +41,7 @@ struct UserToken {
 };
 
 // ===== Sisu token models (from sisu/authenticate response) =====
-struct SisuToken {
+struct MSLOGIN_API SisuToken {
     struct TitleDisplayClaims {
         struct Xti {
             std::string tid;
@@ -112,7 +113,7 @@ struct SisuToken {
     bool isExpired();
 };
 
-struct XstsToken {
+struct MSLOGIN_API XstsToken {
     struct DisplayClaimsType {
         struct Xui {
             std::string gtg;
@@ -136,7 +137,7 @@ struct XstsToken {
     bool isExpired() const;
 };
 
-struct MsalToken {
+struct MSLOGIN_API MsalToken {
     std::string lpt;
     std::string refresh_token;
     std::string user_id;
@@ -145,7 +146,7 @@ struct MsalToken {
 
 // ===== GSToken (Game Streaming Token from xhome/auth/authenticate) =====
 
-struct GSToken {
+struct MSLOGIN_API GSToken {
     struct Region {
         std::string                name;
         std::string                baseUri;

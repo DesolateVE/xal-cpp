@@ -10,8 +10,9 @@
 #include "utils/jwt_key.hpp"
 #include "utils/token_store.hpp"
 #include "utils/logger.hpp"
+#include "mslogin_export.hpp"
 
-class XAL {
+class MSLOGIN_API XAL {
     struct CodeChallenge {
         std::string verifier;
         std::string value;

@@ -10,10 +10,11 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include "../mslogin_export.hpp"
 
 using namespace Microsoft::WRL;
 
-class WebView2Window
+class MSLOGIN_API WebView2Window
 {
 public:
     struct WindowParams

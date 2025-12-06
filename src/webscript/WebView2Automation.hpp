@@ -7,13 +7,14 @@
 #include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
+#include "../mslogin_export.hpp"
 
 using json = nlohmann::json;
 
 class WebView2Window;
 
 // WebView2 自动化操作封装类（类似 Playwright）
-class WebView2Automation {
+class MSLOGIN_API WebView2Automation {
 public:
     // 错误码定义（与 browser_automation.js 保持一致）
     enum ErrorCode {

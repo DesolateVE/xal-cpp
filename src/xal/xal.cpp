@@ -4,18 +4,18 @@
 #include <httplib.h>
 #include <nlohmann/json.hpp>
 
-#include "utils/ssl_utils.hpp"
 #include "utils/logger.hpp"
+#include "utils/ssl_utils.hpp"
 
 nlohmann::json _app = {{"AppId", "000000004c20a908"}, {"TitleId", "328178078"}, {"RedirectUri", "ms-xal-000000004c20a908://auth"}};
 
 XAL::XAL(std::filesystem::path token_file)
-    : mTokenFilePath(token_file) {
-    if (!std::filesystem::exists(token_file)) {
+    : mTokenFilePath(std::filesystem::absolute(token_file)) {
+    if (!std::filesystem::exists(mTokenFilePath)) {
         return;
     }
 
-    std::ifstream file(token_file);
+    std::ifstream file(mTokenFilePath);
     if (file.is_open()) {
         nlohmann::json tokens;
         file >> tokens;
@@ -89,6 +89,7 @@ XAL::DeviceToken XAL::getDeviceToken() {
 
 UserToken XAL::getUserToken() {
     if (mUserToken->isExpired()) {
+        LOG_INFO("UserToken 过期，正在刷新...");
         mUserToken = std::make_unique<UserToken>(refreshUserToken());
     }
     return *mUserToken;
@@ -98,18 +99,29 @@ SisuToken XAL::getSisuToken() {
     if (mSisuToken && !mSisuToken->isExpired()) {
         return *mSisuToken;
     }
+
+    LOG_INFO(mSisuToken ? "SisuToken 过期，正在重新授权..." : "没有 SisuToken ，正在授权...");
+
     auto deviceToken = getDeviceToken();
     auto userToken   = getUserToken();
     mSisuToken       = std::make_unique<SisuToken>(doSisuAuthorization(userToken, deviceToken, ""));
     return *mSisuToken;
 }
 
-MsalToken XAL::getMsalToken() { return exchangeRefreshTokenForXcloudTransferToken(getUserToken()); }
+MsalToken XAL::getMsalToken() {
+
+    LOG_INFO("正在交换 Xcloud 传输令牌...");
+
+    return exchangeRefreshTokenForXcloudTransferToken(getUserToken());
+}
 
 XstsToken XAL::getWebToken() {
     if (mWebToken && !mWebToken->isExpired()) {
         return *mWebToken;
     }
+
+    LOG_INFO(mWebToken ? "WebToken 过期，正在重新授权..." : "没有 WebToken ，正在授权...");
+
     mWebToken = std::make_unique<XstsToken>(doXstsAuthorization(getSisuToken(), "http://xboxlive.com"));
     return *mWebToken;
 }
@@ -118,6 +130,9 @@ GSToken XAL::getGSToken() {
     if (mGSToken && !mGSToken->isExpired()) {
         return *mGSToken;
     }
+
+    LOG_INFO(mGSToken ? "GSToken 过期，正在重新生成..." : "没有 GSToken ，正在生成...");
+
     mStreamingXsts = std::make_unique<XstsToken>(doXstsAuthorization(getSisuToken(), "http://gssv.xboxlive.com/"));
     mGSToken       = std::make_unique<GSToken>(genStreamingToken(*mStreamingXsts, "xhome"));
     return *mGSToken;
