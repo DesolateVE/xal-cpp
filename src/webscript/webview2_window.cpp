@@ -559,6 +559,7 @@ LRESULT CALLBACK WebView2Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
             return 0;
 
         case WM_CLOSE:
+            pWindow->m_shouldExit = true;
             if (pWindow->m_webviewController)
             {
                 pWindow->m_webviewController->Close();

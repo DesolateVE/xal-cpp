@@ -64,6 +64,9 @@ public:
     // 注入文档创建时脚本（线程安全）
     bool AddScriptToExecuteOnDocumentCreated(const std::string &script);
 
+    // 检查窗口是否被关闭
+    bool IsWindowClosed() const { return m_shouldExit || m_hWnd == nullptr; }
+
 private:
     // 窗口过程
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);

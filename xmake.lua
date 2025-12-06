@@ -14,7 +14,7 @@ target("MSLogin")
     add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX", "MSLOGIN_EXPORTS")
     add_syslinks("gdi32.lib")
     after_build(function (target)
-        os.cp("$(scriptdir)/src/webscript/browser_automation.js", path.directory(target:targetfile()))
+        os.cp("$(scriptdir)/src/webscript/browser_automation.js", target:targetdir())
     end)
 
 target("example")
