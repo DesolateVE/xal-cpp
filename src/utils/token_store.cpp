@@ -24,7 +24,7 @@ bool SisuToken::isExpired() {
     for (auto* f: fields) {
         if (!f->empty()) {
             auto tp = ssl_utils::Time::parse_iso8601_utc(*f);
-            if (!tp || now >= *tp) return true;  // 解析失败或已过期则返回 true
+            if (!tp || now >= *tp) return true;  // 解析失败或已过期则返回真
         }
     }
     return false;

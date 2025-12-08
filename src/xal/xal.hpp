@@ -7,10 +7,10 @@
 #include <openssl/evp.h>
 #include <string>
 
-#include "utils/jwt_key.hpp"
-#include "utils/token_store.hpp"
-#include "utils/logger.hpp"
 #include "mslogin_export.hpp"
+#include "utils/jwt_key.hpp"
+#include "utils/logger.hpp"
+#include "utils/token_store.hpp"
 
 class MSLOGIN_API XAL {
     struct CodeChallenge {
@@ -44,10 +44,8 @@ class MSLOGIN_API XAL {
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuAuthResponse, MsaOauthRedirect, MsaRequestParameters)
     };
 
-    // SisuToken moved to utils/token_store.hpp (top-level structs)
-
 public:
-    XAL(std::filesystem::path token_file);
+    XAL(std::filesystem::path token_file, std::filesystem::path device_file = "");
     ~XAL();
 
     std::string getLoginUri();
@@ -72,7 +70,7 @@ private:
     // 执行 Sisu 授权，返回包含授权令牌的响应
     SisuToken doSisuAuthorization(const UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID);
 
-    // 交换 code 获取用户令牌
+    // 交换授权码获取用户令牌
     UserToken exchangeCodeForToken(std::string code, std::string code_verifier);
 
     // 执行 XSTS 授权
@@ -85,8 +83,14 @@ private:
     // 刷新用户令牌
     UserToken refreshUserToken();
 
-    // 使用 JwtKey 对数据进行签名
+    // 使用 JWT 密钥对数据进行签名
     std::vector<uint8_t> SignData(const std::string& url, const std::string& authorization_token, const std::string& payload, EVP_PKEY* pkey);
+
+private:
+    void loadDeviceToken(); // 加载设备令牌（全局共享）
+    void loadUserTokens();  // 加载用户令牌（每个账号独立）
+    void saveDeviceToken(); // 保存设备令牌
+    void saveUserTokens();  // 保存用户令牌
 
 private:
     std::unique_ptr<JwtKey>        mJwtKey;
@@ -97,6 +101,7 @@ private:
     std::unique_ptr<XstsToken>     mStreamingXsts;
     std::unique_ptr<XstsToken>     mWebToken;
     std::unique_ptr<GSToken>       mGSToken;
-    std::filesystem::path          mTokenFilePath;
+    std::filesystem::path          mTokenFilePath;  // 用户令牌文件路径
+    std::filesystem::path          mDeviceFilePath; // 设备令牌文件路径（共享）
     bool                           mIsAuthenticating = false;
 };

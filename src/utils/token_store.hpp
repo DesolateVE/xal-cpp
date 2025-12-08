@@ -7,7 +7,7 @@
 #include <vector>
 #include "../mslogin_export.hpp"
 
-// 补充 std::optional 的 ADL 序列化以兼容当前环境
+// 补充 std::optional 的参数依赖查找序列化以兼容当前环境
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <typename T> struct adl_serializer<std::optional<T>> {
     static void to_json(json& j, const std::optional<T>& opt) {
@@ -25,7 +25,7 @@ template <typename T> struct adl_serializer<std::optional<T>> {
 };
 NLOHMANN_JSON_NAMESPACE_END
 
-// ===== UserToken (MSA OAuth token) =====
+// ===== 用户令牌 (Microsoft 账户 OAuth 令牌) =====
 struct MSLOGIN_API UserToken {
     std::string token_type;
     uint64_t    expires_in;
@@ -40,7 +40,7 @@ struct MSLOGIN_API UserToken {
     bool isExpired() const;
 };
 
-// ===== Sisu token models (from sisu/authenticate response) =====
+// ===== Sisu 令牌模型 (来自 sisu/authenticate 响应) =====
 struct MSLOGIN_API SisuToken {
     struct TitleDisplayClaims {
         struct Xti {
@@ -144,15 +144,15 @@ struct MSLOGIN_API MsalToken {
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(MsalToken, lpt, refresh_token, user_id)
 };
 
-// ===== GSToken (Game Streaming Token from xhome/auth/authenticate) =====
+// ===== 游戏流令牌 (来自 xhome/auth/authenticate) =====
 
 struct MSLOGIN_API GSToken {
     struct Region {
         std::string                name;
         std::string                baseUri;
-        std::optional<std::string> networkTestHostname;  // 可能为 null
+        std::optional<std::string> networkTestHostname;  // 可能为空
         bool                       isDefault;
-        std::optional<std::string> systemUpdateGroups;  // 可能为 null
+        std::optional<std::string> systemUpdateGroups;  // 可能为空
         int                        fallbackPriority;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
             Region, name, baseUri, networkTestHostname, isDefault, systemUpdateGroups, fallbackPriority)
@@ -160,7 +160,7 @@ struct MSLOGIN_API GSToken {
 
     struct Environment {
         std::string                Name;
-        std::optional<std::string> AuthBaseUri;  // 可能为 null
+        std::optional<std::string> AuthBaseUri;  // 可能为空
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(Environment, Name, AuthBaseUri)
     };
 
@@ -172,7 +172,7 @@ struct MSLOGIN_API GSToken {
     struct OfferingSettings {
         bool                       allowRegionSelection;
         std::vector<Region>        regions;
-        std::optional<std::string> selectableServerTypes;  // 可能为 null
+        std::optional<std::string> selectableServerTypes;  // 可能为空
         ClientCloudSettings        clientCloudSettings;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(
             OfferingSettings, allowRegionSelection, regions, selectableServerTypes, clientCloudSettings)

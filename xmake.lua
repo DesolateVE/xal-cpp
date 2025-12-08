@@ -20,7 +20,7 @@ target("MSLogin")
 target("example")
     set_kind("binary")
     set_languages("clatest", "cxxlatest")
-    add_files("src/example.cpp")
+    add_files("tests/example.cpp")
     add_deps("MSLogin")
     set_default(false)
     

@@ -26,8 +26,10 @@ namespace ssl_utils {
     namespace Time {
         uint64_t get_windows_timestamp();
         // 解析 ISO8601 UTC 时间字符串，例如 "2025-11-26T08:32:10.5118384Z"
-        // 成功返回 time_point，失败返回 nullopt
+        // 成功返回时间点，失败返回空值
         std::optional<std::chrono::system_clock::time_point> parse_iso8601_utc(const std::string& s);
+        // 获取网络 NTP 时间（从 NTP 服务器获取），网络不可用时返回本地时间
+        std::chrono::system_clock::time_point get_network_time();
     }  // namespace Time
 
     namespace Uuid {

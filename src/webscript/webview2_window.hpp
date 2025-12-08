@@ -24,14 +24,14 @@ public:
         int width = 1200;
         int height = 800;
         bool borderless = true;
-        bool privateMode = false; // 是否使用无痕模式（InPrivate）
+        std::wstring userDataFolder; // 自定义数据目录（为空则使用默认位置）
         HWND parent = nullptr;
     };
 
     WebView2Window(const WindowParams &params);
     ~WebView2Window();
 
-    // 运行窗口（异步在独立线程运行）
+    // 运行窗口（在独立线程异步运行）
     void Run();
 
     // 关闭窗口
@@ -39,7 +39,7 @@ public:
 
     // 等待窗口线程结束
     void Join();
-    // 获取 WebView2 接口
+    // 获取 WebView2 接口对象
     wil::com_ptr<ICoreWebView2> GetWebView() const { return m_webview; }
 
     // 获取窗口句柄
@@ -48,23 +48,23 @@ public:
     // 设置就绪回调（在 WebView2 初始化完成时调用）
     void SetReadyCallback(std::function<void()> callback) { m_readyCallback = callback; }
 
-    // 设置导航监听回调（可捕获所有导航，包括自定义协议如 ms-xal-://）
-    // 回调返回 true 表示已处理（取消导航），返回 false 表示继续
+    // 设置导航开始回调（可捕获所有导航，包括自定义协议如 ms-xal-://）
+    // 回调返回真表示已处理（取消导航），返回假表示继续
     void SetNavigationStartingCallback(std::function<bool(const std::string &url)> callback) { m_navigationStartingCallback = callback; }
 
     // 阻塞等待 WebView2 就绪（返回是否成功初始化）
     bool WaitForReady(int timeoutMs = -1);
 
-    // 导航到指定 URL（线程安全，UTF-8）
+    // 导航到指定 URL（线程安全，UTF-8 编码）
     bool Navigate(const std::string &url);
 
-    // 执行 JS 脚本并同步获取返回值（线程安全，可从任意线程调用）
+    // 执行 JavaScript 脚本并同步获取返回值（线程安全，可从任意线程调用）
     bool ExecuteScriptSync(const std::string &script, std::string &result);
 
     // 注入文档创建时脚本（线程安全）
     bool AddScriptToExecuteOnDocumentCreated(const std::string &script);
 
-    // 检查窗口是否被关闭
+    // 检查窗口是否已被关闭
     bool IsWindowClosed() const { return m_shouldExit || m_hWnd == nullptr; }
 
 private:

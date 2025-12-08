@@ -4,7 +4,7 @@
 
 namespace std
 {
-    // UTF-8 string 转 wstring
+    // UTF-8 字符串转宽字符串
     inline std::wstring Utf8ToWide(const std::string &str)
     {
         if (str.empty())
@@ -15,7 +15,7 @@ namespace std
         return result;
     }
 
-    // wstring 转 UTF-8 string
+    // 宽字符串转 UTF-8 字符串
     inline std::string WideToUtf8(const std::wstring &wstr)
     {
         if (wstr.empty())
