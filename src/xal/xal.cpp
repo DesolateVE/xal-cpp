@@ -470,7 +470,7 @@ XstsToken XAL::doXstsAuthorization(const SisuToken& sisu_token, const std::strin
     nlohmann::json body = {
         {"Properties",
          {{"SandboxId", "RETAIL"},
-          {"DeviceToken", sisu_token.DeviceToken},
+          {"DeviceToken", getDeviceToken().Token},
           {"TitleToken", sisu_token.TitleToken.Token},
           {"UserTokens", nlohmann::json::array({sisu_token.UserToken.Token})}}},
         {"RelyingParty", relyingParty},
