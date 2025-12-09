@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+
 #include "../mslogin_export.hpp"
 
 // 补充 std::optional 的参数依赖查找序列化以兼容当前环境
@@ -34,8 +35,7 @@ struct MSLOGIN_API UserToken {
     std::string refresh_token;
     std::string user_id;
     uint64_t    expires_at;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-        UserToken, token_type, expires_in, scope, access_token, refresh_token, user_id, expires_at)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(UserToken, token_type, expires_in, scope, access_token, refresh_token, user_id, expires_at)
     void updateExpiry();
     bool isExpired() const;
 };
@@ -45,10 +45,10 @@ struct MSLOGIN_API SisuToken {
     struct TitleDisplayClaims {
         struct Xti {
             std::string tid;
-            NLOHMANN_DEFINE_TYPE_INTRUSIVE(Xti, tid)
+            NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xti, tid)
         };
         Xti xti;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(TitleDisplayClaims, xti)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(TitleDisplayClaims, xti)
     };
 
     struct _TitleToken {
@@ -56,7 +56,7 @@ struct MSLOGIN_API SisuToken {
         std::string        IssueInstant;
         std::string        NotAfter;
         std::string        Token;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(_TitleToken, DisplayClaims, IssueInstant, NotAfter, Token)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(_TitleToken, DisplayClaims, IssueInstant, NotAfter, Token)
     };
 
     struct UserDisplayClaims {
@@ -82,7 +82,7 @@ struct MSLOGIN_API SisuToken {
         std::string       IssueInstant;
         std::string       NotAfter;
         std::string       Token;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(_UserToken, DisplayClaims, IssueInstant, NotAfter, Token)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(_UserToken, DisplayClaims, IssueInstant, NotAfter, Token)
     };
 
     struct _UcsMigrationResponse {
@@ -92,23 +92,25 @@ struct MSLOGIN_API SisuToken {
 
     std::string           DeviceToken;
     _TitleToken           TitleToken;
-    _UserToken            UserToken;           // user token
-    _UserToken            AuthorizationToken;  // authz token with xui
+    _UserToken            UserToken;          // user token
+    _UserToken            AuthorizationToken; // authz token with xui
     std::string           WebPage;
     std::string           Sandbox;
     bool                  UseModernGamertag;
     _UcsMigrationResponse UcsMigrationResponse;
     std::string           Flow;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuToken,
-                                   DeviceToken,
-                                   TitleToken,
-                                   UserToken,
-                                   AuthorizationToken,
-                                   WebPage,
-                                   Sandbox,
-                                   UseModernGamertag,
-                                   UcsMigrationResponse,
-                                   Flow)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        SisuToken,
+        DeviceToken,
+        TitleToken,
+        UserToken,
+        AuthorizationToken,
+        WebPage,
+        Sandbox,
+        UseModernGamertag,
+        UcsMigrationResponse,
+        Flow
+    )
 
     bool isExpired();
 };
@@ -150,17 +152,16 @@ struct MSLOGIN_API GSToken {
     struct Region {
         std::string                name;
         std::string                baseUri;
-        std::optional<std::string> networkTestHostname;  // 可能为空
+        std::optional<std::string> networkTestHostname; // 可能为空
         bool                       isDefault;
-        std::optional<std::string> systemUpdateGroups;  // 可能为空
+        std::optional<std::string> systemUpdateGroups; // 可能为空
         int                        fallbackPriority;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            Region, name, baseUri, networkTestHostname, isDefault, systemUpdateGroups, fallbackPriority)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(Region, name, baseUri, networkTestHostname, isDefault, systemUpdateGroups, fallbackPriority)
     };
 
     struct Environment {
         std::string                Name;
-        std::optional<std::string> AuthBaseUri;  // 可能为空
+        std::optional<std::string> AuthBaseUri; // 可能为空
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(Environment, Name, AuthBaseUri)
     };
 
@@ -172,10 +173,9 @@ struct MSLOGIN_API GSToken {
     struct OfferingSettings {
         bool                       allowRegionSelection;
         std::vector<Region>        regions;
-        std::optional<std::string> selectableServerTypes;  // 可能为空
+        std::optional<std::string> selectableServerTypes; // 可能为空
         ClientCloudSettings        clientCloudSettings;
-        NLOHMANN_DEFINE_TYPE_INTRUSIVE(
-            OfferingSettings, allowRegionSelection, regions, selectableServerTypes, clientCloudSettings)
+        NLOHMANN_DEFINE_TYPE_INTRUSIVE(OfferingSettings, allowRegionSelection, regions, selectableServerTypes, clientCloudSettings)
     };
 
     OfferingSettings offeringSettings;
@@ -183,10 +183,9 @@ struct MSLOGIN_API GSToken {
     std::string      gsToken;
     std::string      tokenType;
     int64_t          durationInSeconds;
-    uint64_t         expires_at = 0;  // Unix 时间戳
+    uint64_t         expires_at = 0; // Unix 时间戳
 
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-        GSToken, offeringSettings, market, gsToken, tokenType, durationInSeconds, expires_at)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(GSToken, offeringSettings, market, gsToken, tokenType, durationInSeconds, expires_at)
 
     // 计算并更新到期时间（调用者需手动调用）
     void updateExpiry();
