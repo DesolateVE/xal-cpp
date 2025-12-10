@@ -16,7 +16,7 @@ window.__automation = {
     },
 
     // 设置登录凭据
-    setCredentials: function(username, password) {
+    setCredentials: function (username, password) {
         this.credentials.username = username;
         this.credentials.password = password;
         return JSON.stringify({ errcode: this.ERR_SUCCESS });
@@ -24,57 +24,60 @@ window.__automation = {
 
     // 页面操作处理器映射
     actionHandlers: {
-        '登录': function(auto) {
+        '登录': function (auto) {
             auto.type('[id="usernameEntry"]', auto.credentials.username);
             auto.clickButton('下一步');
         },
-        '输入你的密码': function(auto) {
+        '输入你的密码': function (auto) {
             auto.type('[id="passwordEntry"]', auto.credentials.password);
             auto.clickButton('下一步');
         },
-        '获取用于登录的代码': function(auto) {
+        '获取用于登录的代码': function (auto) {
             auto.clickButton('其他登录方法');
         },
-        '使用另一种方式登录': function(auto) {
+        '使用另一种方式登录': function (auto) {
             auto.clickButton('使用密码');
         },
-        '验证你的电子邮件': function(auto) {
+        '验证你的电子邮件': function (auto) {
             auto.clickButton('使用密码');
         },
-        '使用人脸、指纹或 PIN 更快地登录': function(auto) {
+        '使用人脸、指纹或 PIN 更快地登录': function (auto) {
             auto.clickButton('暂时跳过');
+        },
+        '正在尝试登录到 Game Pass 吗?': function (auto) {
+            auto.clickButton('继续');
         }
     },
 
     // 执行指定页面的 action（C++ 调用此方法，传入页面标题）
     // 返回: { errcode: 0|1|2, message?: string }
-    doAction: function(title) {
+    doAction: function (title) {
         try {
             // 查找对应的处理器
             const handler = this.actionHandlers[title];
             if (!handler) {
-                return JSON.stringify({ 
-                    errcode: this.ERR_NO_HANDLER, 
-                    message: 'No handler for: ' + title 
+                return JSON.stringify({
+                    errcode: this.ERR_NO_HANDLER,
+                    message: 'No handler for: ' + title
                 });
             }
 
             // 执行处理器
             handler(this);
-            
-            return JSON.stringify({ 
-                errcode: this.ERR_SUCCESS 
+
+            return JSON.stringify({
+                errcode: this.ERR_SUCCESS
             });
         } catch (e) {
-            return JSON.stringify({ 
-                errcode: this.ERR_EXCEPTION, 
-                message: e.message 
+            return JSON.stringify({
+                errcode: this.ERR_EXCEPTION,
+                message: e.message
             });
         }
     },
 
     // 查找元素（返回是否存在）
-    querySelector: function(selector) {
+    querySelector: function (selector) {
         const element = document.querySelector(selector);
         if (element) {
             return JSON.stringify({ errcode: this.ERR_SUCCESS });
@@ -83,12 +86,12 @@ window.__automation = {
     },
 
     // 点击元素
-    click: function(selector) {
+    click: function (selector) {
         const element = document.querySelector(selector);
         if (!element) {
             return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
         }
-        
+
         try {
             element.click();
             return JSON.stringify({ errcode: this.ERR_SUCCESS });
@@ -98,10 +101,10 @@ window.__automation = {
     },
 
     // 通过文本查找并点击按钮
-    clickButton: function(text) {
+    clickButton: function (text) {
         const buttons = document.querySelectorAll('button, [role="button"]');
         for (const button of buttons) {
-            if (button.textContent.trim() === text) {
+            if (button.textContent.trim() === text || button.value === text) {
                 button.click();
                 return JSON.stringify({ errcode: this.ERR_SUCCESS });
             }
@@ -110,7 +113,7 @@ window.__automation = {
     },
 
     // 填写输入框（使用原生 setter 触发 React）
-    type: function(selector, value) {
+    type: function (selector, value) {
         const element = document.querySelector(selector);
         if (!element) {
             return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
@@ -144,7 +147,7 @@ window.__automation = {
     },
 
     // 获取元素文本内容
-    getText: function(selector) {
+    getText: function (selector) {
         const element = document.querySelector(selector);
         if (!element) {
             return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
@@ -153,7 +156,7 @@ window.__automation = {
     },
 
     // 获取输入框的值
-    getValue: function(selector) {
+    getValue: function (selector) {
         const element = document.querySelector(selector);
         if (!element) {
             return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Element not found: ' + selector });
@@ -162,11 +165,11 @@ window.__automation = {
     },
 
     // 等待元素出现（轮询版本，返回是否成功）
-    waitForSelector: function(selector, timeoutMs) {
+    waitForSelector: function (selector, timeoutMs) {
         const self = this;
         timeoutMs = timeoutMs || 5000;
         const startTime = Date.now();
-        
+
         return new Promise((resolve) => {
             const check = () => {
                 if (document.querySelector(selector)) {
@@ -182,16 +185,22 @@ window.__automation = {
     },
 
     // 获取页面标题（Microsoft 登录页通过 data-testid="title" 显示当前步骤）
-    getPageTitle: function() {
-        const titleElement = document.querySelector('[data-testid="title"]');
+    getPageTitle: function () {
+        var titleElement = document.querySelector('[data-testid="title"]');
         if (titleElement) {
             return JSON.stringify({ errcode: this.ERR_SUCCESS, title: titleElement.textContent.trim() });
         }
+
+        titleElement = document.querySelector('div#appConfirmPageTitle.text-title')
+        if (titleElement) {
+            return JSON.stringify({ errcode: this.ERR_SUCCESS, title: titleElement.textContent.trim() });
+        }
+
         return JSON.stringify({ errcode: this.ERR_NOT_FOUND, message: 'Title element not found' });
     },
 
     // 列出所有可见按钮的文本
-    listButtons: function() {
+    listButtons: function () {
         const buttons = document.querySelectorAll('button, [role="button"]');
         const buttonTexts = [];
         for (const button of buttons) {

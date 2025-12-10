@@ -61,17 +61,17 @@ struct MSLOGIN_API SisuToken {
 
     struct UserDisplayClaims {
         struct Xui {
-            std::string uhs;
-            std::string gtg;
-            std::string xid;
-            std::string mgt;
-            std::string mgs;
-            std::string umg;
             std::string agg;
-            std::string usr;
+            std::string gtg;
+            std::string mgs;
+            std::string mgt;
             std::string prv;
             std::string ugc;
-            NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, uhs, gtg, xid, mgt, mgs, umg, agg, usr, prv, ugc)
+            std::string uhs;
+            std::string umg;
+            std::string usr;
+            std::string xid;
+            NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Xui, agg, gtg, mgs, mgt, prv, ugc, uhs, umg, usr, xid)
         };
         std::vector<Xui> xui;
         NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(UserDisplayClaims, xui)
@@ -90,26 +90,18 @@ struct MSLOGIN_API SisuToken {
         NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(_UcsMigrationResponse, gcsConsentsToOverride)
     };
 
-    std::string           DeviceToken;
     _TitleToken           TitleToken;
     _UserToken            UserToken;          // user token
     _UserToken            AuthorizationToken; // authz token with xui
     std::string           WebPage;
-    std::string           Sandbox;
-    bool                  UseModernGamertag;
     _UcsMigrationResponse UcsMigrationResponse;
-    std::string           Flow;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
         SisuToken,
-        DeviceToken,
         TitleToken,
         UserToken,
         AuthorizationToken,
         WebPage,
-        Sandbox,
-        UseModernGamertag,
-        UcsMigrationResponse,
-        Flow
+        UcsMigrationResponse
     )
 
     bool isExpired();

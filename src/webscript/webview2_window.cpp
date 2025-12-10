@@ -20,7 +20,7 @@ WebView2Window::~WebView2Window() {
 
 bool WebView2Window::CreateWindowInternal() {
     // 注册窗口类（显式使用 W 版本，避免受 UNICODE 宏影响）
-    const wchar_t CLASS_NAME[] = L"WebView2SimpleWindow";
+    const wchar_t CLASS_NAME[] = L"WebView2LoginWindow";
 
     WNDCLASSW wc     = {};
     wc.lpfnWndProc   = WindowProc;
@@ -31,8 +31,8 @@ bool WebView2Window::CreateWindowInternal() {
 
     RegisterClassW(&wc);
 
-    // 创建窗口（无标题栏/边框，禁止调整大小）
-    DWORD style = NULL;
+    // 创建窗口（带标题栏和关闭按钮，禁止最大化和调整大小）
+    DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU; // 标题栏 + 系统菜单（关闭按钮）
 
     // 如果有父窗口，添加 WS_CHILD 样式
     if (m_params.parent) {
@@ -60,20 +60,6 @@ bool WebView2Window::CreateWindowInternal() {
 
     ShowWindow(m_hWnd, m_params.nCmdShow);
     UpdateWindow(m_hWnd);
-
-    // 仅当是顶层窗口且无边框时才居中显示
-    if (m_params.borderless && !m_params.parent) {
-        // 居中显示
-        RECT rc;
-        GetWindowRect(m_hWnd, &rc);
-        int winW    = rc.right - rc.left;
-        int winH    = rc.bottom - rc.top;
-        int screenW = GetSystemMetrics(SM_CXSCREEN);
-        int screenH = GetSystemMetrics(SM_CYSCREEN);
-        int x       = (screenW - winW) / 2;
-        int y       = (screenH - winH) / 2;
-        SetWindowPos(m_hWnd, nullptr, x, y, winW, winH, SWP_NOZORDER | SWP_NOSIZE);
-    }
 
     // 初始化 WebView2
     InitializeWebView();
