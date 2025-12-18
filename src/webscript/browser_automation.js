@@ -1,6 +1,44 @@
 // browser_automation.js - 浏览器自动化辅助函数
 // 提供类似 Playwright 的 API，供 C++ 通过 ExecuteScript 调用
 
+// 禁用 Windows Hello / Passkey（立即执行）
+(function() {
+    // 禁用 PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
+    const pkc = window.PublicKeyCredential;
+    if (pkc) {
+        try {
+            Object.defineProperty(pkc, 'isUserVerifyingPlatformAuthenticatorAvailable', {
+                configurable: true,
+                enumerable: false,
+                value: () => Promise.resolve(false)
+            });
+        } catch (e) {
+            try { 
+                pkc.isUserVerifyingPlatformAuthenticatorAvailable = () => Promise.resolve(false); 
+            } catch (_) {}
+        }
+    }
+
+    // 拦截 navigator.credentials.create（用于创建 Passkey）
+    try {
+        const nav = window.navigator;
+        if (nav && nav.credentials && typeof nav.credentials.create === 'function') {
+            const originalCreate = nav.credentials.create.bind(nav.credentials);
+            nav.credentials.create = function(options) {
+                if (options && options.publicKey) {
+                    console.log('[MSLogin] 已拦截 Passkey 保存请求');
+                    return Promise.reject(new DOMException('User cancelled', 'NotAllowedError'));
+                }
+                return originalCreate(options);
+            };
+        }
+    } catch (e) {
+        console.error('[MSLogin] 拦截 credentials.create 失败:', e);
+    }
+
+    console.log('[MSLogin] Windows Hello / Passkey 已禁用');
+})();
+
 window.__automation = {
     // 错误码定义
     ERR_SUCCESS: 0,           // 成功
