@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include "utils/helper.hpp"
+#include "utils/ssl_utils.hpp"
 #include "webscript/WebView2Automation.hpp"
 #include "webscript/webview2_window.hpp"
 #include "xal/xal.hpp"
@@ -60,9 +61,6 @@ struct Response {
     bool        AliasDisabledForLogin;       // 别名是否禁用登录
     Credentials Credentials;                 // 凭据信息
     bool        FullPasswordResetExperience; // 是否为完整密码重置体验
-    std::string FlowToken;                   // 新的流程令牌（用于下一步）
-    int         ThrottleStatus;              // 限流状态：0=正常, 1=被限流
-    std::string apiCanary;                   // API Canary 令牌
 };
 
 // nlohmann::json 自动序列化支持
@@ -107,10 +105,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(
     IfExistsResult,
     AliasDisabledForLogin,
     Credentials,
-    FullPasswordResetExperience,
-    FlowToken,
-    ThrottleStatus,
-    apiCanary
+    FullPasswordResetExperience
 )
 } // namespace CredentialType
 
@@ -242,7 +237,7 @@ int main() {
         {"uaid", uaid},
         {"isReactLoginRequest", true},
         {"isFidoSupported", false},
-        {"isRemoteNGCSupported", true},
+        {"isRemoteNGCSupported", false},
         {"checkPhones", false},
         {"country", ""},
         {"federationFlags", 11},
@@ -326,6 +321,7 @@ int main() {
             CredentialType::Response credResponse = credJson.get<CredentialType::Response>();
 
             std::cout << "data:" << credResponse.Credentials.OtcLoginEligibleProofs[0].data << "\n";
+            ppft = credResponse.Credentials.OtcLoginEligibleProofs[0].data;
 
         } catch (const std::exception& e) { std::cerr << "Failed to parse GetCredentialType response: " << e.what() << "\n"; }
     } else {
