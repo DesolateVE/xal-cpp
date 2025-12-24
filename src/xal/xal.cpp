@@ -30,7 +30,16 @@ XAL::~XAL() { saveUserTokens(); }
 
 XAL::DeviceToken XAL::getDeviceToken() {
     if (mDeviceToken) {
-        return *mDeviceToken;
+        // 检查设备令牌是否过期，如果未过期则复用
+        auto notAfterOpt = ssl_utils::Time::parse_iso8601_utc(mDeviceToken->NotAfter);
+        auto now         = std::chrono::system_clock::now();
+        if (notAfterOpt.has_value() && now < *notAfterOpt) {
+            return *mDeviceToken;
+        }
+
+        // 已过期或无法解析到期时间，重新生成设备令牌
+        LOG_WARNING("设备令牌已过期或无效，正在重新生成...");
+        mDeviceToken.reset();
     }
 
     if (!mJwtKey) {
