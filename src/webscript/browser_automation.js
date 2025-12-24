@@ -2,7 +2,7 @@
 // 提供类似 Playwright 的 API，供 C++ 通过 ExecuteScript 调用
 
 // 禁用 Windows Hello / Passkey（立即执行）
-(function() {
+(function () {
     // 禁用 PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable
     const pkc = window.PublicKeyCredential;
     if (pkc) {
@@ -13,9 +13,9 @@
                 value: () => Promise.resolve(false)
             });
         } catch (e) {
-            try { 
-                pkc.isUserVerifyingPlatformAuthenticatorAvailable = () => Promise.resolve(false); 
-            } catch (_) {}
+            try {
+                pkc.isUserVerifyingPlatformAuthenticatorAvailable = () => Promise.resolve(false);
+            } catch (_) { }
         }
     }
 
@@ -24,7 +24,7 @@
         const nav = window.navigator;
         if (nav && nav.credentials && typeof nav.credentials.create === 'function') {
             const originalCreate = nav.credentials.create.bind(nav.credentials);
-            nav.credentials.create = function(options) {
+            nav.credentials.create = function (options) {
                 if (options && options.publicKey) {
                     console.log('[MSLogin] 已拦截 Passkey 保存请求');
                     return Promise.reject(new DOMException('User cancelled', 'NotAllowedError'));
@@ -84,6 +84,9 @@ window.__automation = {
         },
         '正在尝试登录到 Game Pass 吗?': function (auto) {
             auto.clickButton('继续');
+        },
+        '无法创建通行密钥': function (auto) {
+            auto.clickButton('取消');
         }
     },
 
