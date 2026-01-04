@@ -15,6 +15,7 @@ target("MSLogin")
     add_syslinks("gdi32.lib")
     after_build(function (target)
         os.cp("$(scriptdir)/src/webscript/browser_automation.js", target:targetdir())
+        cprint("${bright green}✔ 已拷贝 browser_automation.js 到 ${clear}%s", target:targetdir())
     end)
 
 target("example")
