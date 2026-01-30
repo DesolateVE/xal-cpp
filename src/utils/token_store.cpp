@@ -5,13 +5,13 @@
 #include "ssl_utils.hpp"
 
 // ---------------- UserToken implementations ----------------
-void UserToken::updateExpiry() {
+void XAL_UserToken::updateExpiry() {
     auto now            = std::chrono::system_clock::now();
     auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
     expires_at          = unix_timestamp + expires_in;
 }
 
-bool UserToken::isExpired() const {
+bool XAL_UserToken::isExpired() const {
     auto now            = std::chrono::system_clock::now();
     auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
     return unix_timestamp >= expires_at;
@@ -21,10 +21,11 @@ bool UserToken::isExpired() const {
 bool SisuToken::isExpired() {
     auto               now      = std::chrono::system_clock::now();
     const std::string* fields[] = {&TitleToken.NotAfter, &UserToken.NotAfter, &AuthorizationToken.NotAfter};
-    for (auto* f: fields) {
+    for (auto* f : fields) {
         if (!f->empty()) {
             auto tp = ssl_utils::Time::parse_iso8601_utc(*f);
-            if (!tp || now >= *tp) return true;  // 解析失败或已过期则返回真
+            if (!tp || now >= *tp)
+                return true; // 解析失败或已过期则返回真
         }
     }
     return false;
@@ -45,9 +46,24 @@ bool GSToken::isExpired() const {
 
 // ==== XstsToken implementations ====
 bool XstsToken::isExpired() const {
-    if (NotAfter.empty()) { return true; }
+    if (NotAfter.empty()) {
+        return true;
+    }
     auto not_after_tp = ssl_utils::Time::parse_iso8601_utc(NotAfter);
-    if (!not_after_tp) return true;  // 解析失败视为过期
+    if (!not_after_tp)
+        return true; // 解析失败视为过期
     auto now = std::chrono::system_clock::now();
     return now >= *not_after_tp;
+}
+
+void MSAL_OAuth2Token::updateExpiry() {
+    auto now            = std::chrono::system_clock::now();
+    auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    expires_at          = unix_timestamp + expires_in;
+}
+
+bool MSAL_OAuth2Token::isExpired() const {
+    auto now            = std::chrono::system_clock::now();
+    auto unix_timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+    return unix_timestamp >= expires_at;
 }

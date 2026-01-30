@@ -26,8 +26,43 @@ template <typename T> struct adl_serializer<std::optional<T>> {
 };
 NLOHMANN_JSON_NAMESPACE_END
 
+// ===== 设备代码认证流程 =====
+struct MSLOGIN_API MSAL_IDeviceCodeAuth {
+    std::string user_code;
+    std::string device_code;
+    std::string verification_uri;
+    int         expires_in;
+    int         interval;
+    std::string message;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(MSAL_IDeviceCodeAuth, user_code, device_code, verification_uri, expires_in, interval, message)
+};
+
+struct MSLOGIN_API MSAL_OAuth2Token {
+    std::string token_type;
+    std::string scope;
+    int         expires_in;
+    int         ext_expires_in;
+    std::string access_token;
+    std::string refresh_token;
+    std::string id_token;
+    uint64_t    expires_at;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
+        MSAL_OAuth2Token,
+        token_type,
+        scope,
+        expires_in,
+        ext_expires_in,
+        access_token,
+        refresh_token,
+        id_token,
+        expires_at
+    )
+    void updateExpiry();
+    bool isExpired() const;
+};
+
 // ===== 用户令牌 (Microsoft 账户 OAuth 令牌) =====
-struct MSLOGIN_API UserToken {
+struct MSLOGIN_API XAL_UserToken {
     std::string token_type;
     uint64_t    expires_in;
     std::string scope;
@@ -35,9 +70,16 @@ struct MSLOGIN_API UserToken {
     std::string refresh_token;
     std::string user_id;
     uint64_t    expires_at;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(UserToken, token_type, expires_in, scope, access_token, refresh_token, user_id, expires_at)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(XAL_UserToken, token_type, expires_in, scope, access_token, refresh_token, user_id, expires_at)
     void updateExpiry();
     bool isExpired() const;
+};
+
+struct MSLOGIN_API IMsalToken {
+    std::string lpt;
+    std::string refresh_token;
+    std::string user_id;
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(IMsalToken, lpt, refresh_token, user_id)
 };
 
 // ===== Sisu 令牌模型 (来自 sisu/authenticate 响应) =====
@@ -95,14 +137,7 @@ struct MSLOGIN_API SisuToken {
     _UserToken            AuthorizationToken; // authz token with xui
     std::string           WebPage;
     _UcsMigrationResponse UcsMigrationResponse;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(
-        SisuToken,
-        TitleToken,
-        UserToken,
-        AuthorizationToken,
-        WebPage,
-        UcsMigrationResponse
-    )
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(SisuToken, TitleToken, UserToken, AuthorizationToken, WebPage, UcsMigrationResponse)
 
     bool isExpired();
 };
@@ -129,13 +164,6 @@ struct MSLOGIN_API XstsToken {
     DisplayClaimsType DisplayClaims;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(XstsToken, IssueInstant, NotAfter, Token, DisplayClaims)
     bool isExpired() const;
-};
-
-struct MSLOGIN_API MsalToken {
-    std::string lpt;
-    std::string refresh_token;
-    std::string user_id;
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(MsalToken, lpt, refresh_token, user_id)
 };
 
 // ===== 游戏流令牌 (来自 xhome/auth/authenticate) =====

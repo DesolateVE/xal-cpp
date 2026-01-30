@@ -44,6 +44,8 @@ class MSLOGIN_API XAL {
         NLOHMANN_DEFINE_TYPE_INTRUSIVE(SisuAuthResponse, MsaOauthRedirect, MsaRequestParameters)
     };
 
+    const nlohmann::json _app = {{"AppId", "000000004c20a908"}, {"TitleId", "328178078"}, {"RedirectUri", "ms-xal-000000004c20a908://auth"}};
+
 public:
     XAL(std::filesystem::path token_file, std::filesystem::path device_file = "");
     ~XAL();
@@ -53,11 +55,11 @@ public:
     bool        isAuthenticating() const { return mIsAuthenticating; }
     void        saveTokensToFile();
 
-    UserToken getUserToken();
-    SisuToken getSisuToken();
-    MsalToken getMsalToken();
-    XstsToken getWebToken();
-    GSToken   getGSToken();
+    XAL_UserToken getUserToken();
+    SisuToken     getSisuToken();
+    IMsalToken    getMsalToken();
+    XstsToken     getWebToken();
+    GSToken       getGSToken();
 
 private:
     DeviceToken   getDeviceToken();
@@ -68,20 +70,20 @@ private:
     SisuAuthResponse doSisuAuthentication(const DeviceToken& device_token, const CodeChallenge& code_challenge, const std::string& state);
 
     // 执行 Sisu 授权，返回包含授权令牌的响应
-    SisuToken doSisuAuthorization(const UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID);
+    SisuToken doSisuAuthorization(const XAL_UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID);
 
     // 交换授权码获取用户令牌
-    UserToken exchangeCodeForToken(std::string code, std::string code_verifier);
+    XAL_UserToken exchangeCodeForToken(std::string code, std::string code_verifier);
 
     // 执行 XSTS 授权
     XstsToken doXstsAuthorization(const SisuToken& sisu_token, const std::string& relyingParty);
 
-    MsalToken exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_token);
+    IMsalToken exchangeRefreshTokenForXcloudTransferToken(const XAL_UserToken& user_token);
 
     GSToken genStreamingToken(const XstsToken& xsts_token, std::string offering);
 
     // 刷新用户令牌
-    UserToken refreshUserToken();
+    XAL_UserToken refreshUserToken();
 
     // 使用 JWT 密钥对数据进行签名
     std::vector<uint8_t> SignData(const std::string& url, const std::string& authorization_token, const std::string& payload, EVP_PKEY* pkey);
@@ -94,7 +96,7 @@ private:
 
 private:
     std::unique_ptr<JwtKey>        mJwtKey;
-    std::unique_ptr<UserToken>     mUserToken;
+    std::unique_ptr<XAL_UserToken> mUserToken;
     std::unique_ptr<DeviceToken>   mDeviceToken;
     std::unique_ptr<CodeChallenge> mCodeChallenge;
     std::unique_ptr<SisuToken>     mSisuToken;

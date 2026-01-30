@@ -7,8 +7,6 @@
 #include "utils/logger.hpp"
 #include "utils/ssl_utils.hpp"
 
-nlohmann::json _app = {{"AppId", "000000004c20a908"}, {"TitleId", "328178078"}, {"RedirectUri", "ms-xal-000000004c20a908://auth"}};
-
 XAL::XAL(std::filesystem::path token_file, std::filesystem::path device_file)
     : mTokenFilePath(std::filesystem::absolute(token_file)) {
 
@@ -96,10 +94,10 @@ XAL::DeviceToken XAL::getDeviceToken() {
     throw std::runtime_error("获取设备令牌失败，已尝试 " + std::to_string(max_retries) + " 次");
 }
 
-UserToken XAL::getUserToken() {
+XAL_UserToken XAL::getUserToken() {
     if (mUserToken->isExpired()) {
         LOG_INFO("用户令牌过期，正在刷新...");
-        mUserToken = std::make_unique<UserToken>(refreshUserToken());
+        mUserToken = std::make_unique<XAL_UserToken>(refreshUserToken());
     }
     return *mUserToken;
 }
@@ -117,7 +115,7 @@ SisuToken XAL::getSisuToken() {
     return *mSisuToken;
 }
 
-MsalToken XAL::getMsalToken() {
+IMsalToken XAL::getMsalToken() {
 
     LOG_INFO("正在交换 Xcloud 传输令牌...");
 
@@ -191,7 +189,7 @@ void XAL::authenticateUser(std::string redirectUri) {
     auto start        = redirectUri.find("code=") + 5;
     auto end          = redirectUri.find("&", start);
     auto code         = redirectUri.substr(start, end - start);
-    mUserToken        = std::make_unique<UserToken>(exchangeCodeForToken(code, getCodeChallenge().verifier));
+    mUserToken        = std::make_unique<XAL_UserToken>(exchangeCodeForToken(code, getCodeChallenge().verifier));
     mSisuToken        = std::make_unique<SisuToken>(doSisuAuthorization(getUserToken(), getDeviceToken(), ""));
     mIsAuthenticating = true;
 }
@@ -239,7 +237,7 @@ void XAL::loadUserTokens() {
 
         // 只加载用户相关的令牌
         if (tokens.contains("user_token")) {
-            mUserToken        = std::make_unique<UserToken>(tokens["user_token"].get<UserToken>());
+            mUserToken        = std::make_unique<XAL_UserToken>(tokens["user_token"].get<XAL_UserToken>());
             mIsAuthenticating = true;
         }
         if (tokens.contains("sisu_token")) {
@@ -358,7 +356,7 @@ XAL::SisuAuthResponse XAL::doSisuAuthentication(const DeviceToken& device_token,
     throw std::runtime_error("无法完成 Sisu 认证，超过最大重试次数 " + std::to_string(max_retries));
 }
 
-SisuToken XAL::doSisuAuthorization(const UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID) {
+SisuToken XAL::doSisuAuthorization(const XAL_UserToken& user_token, const DeviceToken& device_token, const std::string& session_ID) {
     nlohmann::json body = {
         {"AccessToken", "t=" + user_token.access_token},
         {"AppId", _app["AppId"].get<std::string>()},
@@ -401,7 +399,7 @@ SisuToken XAL::doSisuAuthorization(const UserToken& user_token, const DeviceToke
     throw std::runtime_error("Failed to do Sisu authorization after " + std::to_string(max_retries) + " attempts");
 }
 
-UserToken XAL::exchangeCodeForToken(std::string code, std::string code_verifier) {
+XAL_UserToken XAL::exchangeCodeForToken(std::string code, std::string code_verifier) {
     nlohmann::json payload = {
         {"client_id", _app["AppId"].get<std::string>()},
         {"code", code},
@@ -425,7 +423,7 @@ UserToken XAL::exchangeCodeForToken(std::string code, std::string code_verifier)
 
         if (res && res->status == 200) {
             LOG_DEBUG("User token response body: " + res->body);
-            UserToken user_token = nlohmann::json::parse(res->body).get<UserToken>();
+            XAL_UserToken user_token = nlohmann::json::parse(res->body).get<XAL_UserToken>();
             user_token.updateExpiry();
             return user_token;
         }
@@ -514,7 +512,7 @@ XstsToken XAL::doXstsAuthorization(const SisuToken& sisu_token, const std::strin
     throw std::runtime_error("Failed to do XSTS authorization after " + std::to_string(max_retries) + " attempts");
 }
 
-MsalToken XAL::exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_token) {
+IMsalToken XAL::exchangeRefreshTokenForXcloudTransferToken(const XAL_UserToken& user_token) {
     // 构造负载
     nlohmann::json payload = {
         {"client_id", _app["AppId"].get<std::string>()},
@@ -548,7 +546,7 @@ MsalToken XAL::exchangeRefreshTokenForXcloudTransferToken(const UserToken& user_
 
         if (res && res->status == 200) {
             LOG_DEBUG("MSAL token response body: " + res->body);
-            MsalToken msal_token = nlohmann::json::parse(res->body).get<MsalToken>();
+            IMsalToken msal_token = nlohmann::json::parse(res->body).get<IMsalToken>();
             return msal_token;
         }
 
@@ -601,7 +599,7 @@ GSToken XAL::genStreamingToken(const XstsToken& xsts_token, std::string offering
     throw std::runtime_error("Failed to generate streaming token after " + std::to_string(max_retries) + " attempts");
 }
 
-UserToken XAL::refreshUserToken() {
+XAL_UserToken XAL::refreshUserToken() {
     if (!mUserToken) {
         throw std::runtime_error("No user token to refresh");
     }
@@ -627,7 +625,7 @@ UserToken XAL::refreshUserToken() {
 
         if (res && res->status == 200) {
             LOG_DEBUG("Refreshed user token response body: " + res->body);
-            UserToken user_token = nlohmann::json::parse(res->body).get<UserToken>();
+            XAL_UserToken user_token = nlohmann::json::parse(res->body).get<XAL_UserToken>();
             user_token.updateExpiry();
             return user_token;
         }

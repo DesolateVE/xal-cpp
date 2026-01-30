@@ -1,6 +1,5 @@
 #include "ssl_utils.hpp"
 
-#include <boost/scope_exit.hpp>
 #include <cctype>
 #include <cstring>
 #include <iomanip>
