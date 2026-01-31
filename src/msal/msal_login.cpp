@@ -77,8 +77,9 @@ auto MSALLogin::PostCodeAuth(const Credential& credential, const std::string& co
     auto jsonData = nlohmann::json::parse(match[1].str());
 
     // 提取需要的信息
-    std::string sFTTag  = jsonData["sFTTag"];
-    std::string urlPost = jsonData["urlPost"].empty() ? jsonData["urlPostMsa"] : jsonData["urlPost"];
+    std::string sFTTag      = jsonData["sFTTag"];
+    std::string urlPost     = jsonData["urlPost"].empty() ? jsonData["urlPostMsa"] : jsonData["urlPost"];
+    std::string sRandomBlob = jsonData["sRandomBlob"];
 
     // 继续提取 sFTTag 中的 value
     // <input type=\"hidden\" name=\"PPFT\" id=\"i0327\"
@@ -94,8 +95,9 @@ auto MSALLogin::PostCodeAuth(const Credential& credential, const std::string& co
     LOG_INFO("PPFT and urlPost extracted successfully after posting code.");
     LOG_INFO(std::format("\t- urlPost: {}", urlPost));
     LOG_INFO(std::format("\t- PPFT: {}", ppftValue));
+    LOG_INFO(std::format("\t- sRandomBlob: {}", sRandomBlob));
 
-    return {ppftValue, urlPost};
+    return {ppftValue, urlPost, sRandomBlob};
 }
 
 auto MSALLogin::PostAccountAuth(const Credential& credential, const std::string& email, const std::string& password) -> Credential {
@@ -103,7 +105,7 @@ auto MSALLogin::PostAccountAuth(const Credential& credential, const std::string&
     session->SetPayload(
         {{"ps", "2"},
          {"PPFT", credential.ppft},
-         {"PPSX", "PassportR"},
+         {"PPSX", credential.ppsx},
          {"NewUser", "1"},
          {"fspost", "0"},
          {"i21", "0"},

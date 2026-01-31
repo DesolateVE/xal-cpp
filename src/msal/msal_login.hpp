@@ -9,6 +9,7 @@ class MSALLogin {
     struct Credential {
         std::string ppft;
         std::string urlPost;
+        std::string ppsx;
     };
 
 public:
