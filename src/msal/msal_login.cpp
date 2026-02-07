@@ -8,6 +8,7 @@
 
 #include "utils/helper.hpp"
 #include "utils/logger.hpp"
+#include "utils/regular.hpp"
 
 static const cpr::Header defaultHeaders = {
     {"Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6"},
@@ -130,8 +131,25 @@ auto MSALLogin::PostAccountAuth(const Credential& credential, const std::string&
     // 使用正则找到 var ServerData = {...};
     std::regex  serverDataRegex(R"xx(var\s+ServerData\s*=\s*(\{.*?\});)xx");
     std::smatch match;
-    if (!std::regex_search(result.text, match, serverDataRegex))
-        throw std::runtime_error("ServerData not found in response HTML.");
+    if (!std::regex_search(result.text, match, serverDataRegex)) {
+        // 说明登陆方式走了另外一个分支
+        auto actionUrl = Regular::extractActionUrl(result.text);
+
+        // 提取 actionUrl 中的参数
+        auto params  = Regular::extractUrlParameters(actionUrl);
+        auto jumpUrl = Regular::urlDecode(params["ru"]);
+
+        // 继续访问 jumpUrl 获取最终的 token
+        session->SetUrl(jumpUrl);
+        auto jumpResult = session->Get();
+
+        if (jumpResult.error)
+            throw std::runtime_error("Failed to get jump URL: " + jumpResult.error.message);
+
+        // 使用正则找到 var ServerData = {...};
+        if (!std::regex_search(jumpResult.text, match, serverDataRegex))
+            throw std::runtime_error("ServerData not found in jump URL response HTML.");
+    }
 
     // 解析 JSON
     auto        jsonData = nlohmann::json::parse(match[1].str());

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <winsock2.h>
 #include <ws2tcpip.h>
