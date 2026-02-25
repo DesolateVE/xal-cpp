@@ -1,5 +1,6 @@
 #include "regular.hpp"
 
+#include <format>
 #include <regex>
 
 static int hexValue(char c) {
@@ -45,9 +46,9 @@ std::string Regular::extractHtmlBody(const std::string& raw) {
     return "";
 }
 
-std::map<std::string, std::string> Regular::extractInputValues(const std::string& raw) {
+std::map<std::string, std::string> Regular::extractInputNameValue(const std::string& raw) {
     std::map<std::string, std::string> result;
-    std::regex                         inputRegex(R"xx(<input\s+[^>]*name="([^"]+)"\s+[^>]*value="([^"]*)"[^>]*>)xx", std::regex::icase);
+    std::regex                         inputRegex(R"xx(<input\s+[^>]*name=["']([^"']+)["'][^>]*value=["']([^"']*)["'][^>]*>)xx", std::regex::icase);
     auto                               begin = std::sregex_iterator(raw.begin(), raw.end(), inputRegex);
     auto                               end   = std::sregex_iterator();
 
@@ -58,15 +59,6 @@ std::map<std::string, std::string> Regular::extractInputValues(const std::string
         }
     }
     return result;
-}
-
-std::string Regular::extractActionUrl(const std::string& raw) {
-    std::regex  formRegex(R"xx(<form\s+[^>]*action="([^"]+)"[^>]*>)xx", std::regex::icase);
-    std::smatch match;
-    if (std::regex_search(raw, match, formRegex)) {
-        return match[1].str();
-    }
-    return "";
 }
 
 std::map<std::string, std::string> Regular::extractUrlParameters(const std::string& url) {
@@ -82,4 +74,54 @@ std::map<std::string, std::string> Regular::extractUrlParameters(const std::stri
         }
     }
     return result;
+}
+
+std::string Regular::extractServerDataJson(const std::string& raw) {
+    std::regex  serverDataRegex(R"xx(var\s+ServerData\s*=\s*(\{.*?\});)xx");
+    std::smatch match;
+    if (std::regex_search(raw, match, serverDataRegex)) {
+        return match[1].str();
+    }
+    return "";
+}
+
+Regular::FormData Regular::extractFormData(const std::string& raw) {
+    FormData result;
+
+    // 提取 action
+    std::regex  actionRegex(R"xx(<form\s+[^>]*action="([^"]+)"[^>]*>)xx", std::regex::icase);
+    std::smatch actionMatch;
+    if (std::regex_search(raw, actionMatch, actionRegex)) {
+        result.action = actionMatch[1].str();
+    }
+
+    // 提取 method
+    std::regex  methodRegex(R"xx(<form\s+[^>]*method="([^"]+)"[^>]*>)xx", std::regex::icase);
+    std::smatch methodMatch;
+    if (std::regex_search(raw, methodMatch, methodRegex)) {
+        result.method = methodMatch[1].str();
+    }
+
+    // 提取所有 input 的 name/value
+    result.inputs = extractInputNameValue(raw);
+
+    return result;
+}
+
+std::string Regular::extractTagContent(const std::string& raw, const std::string& tag) {
+    std::regex  tagRegex(std::format(R"xx(<{0}[^>]*>(.*?)</{0}>)xx", tag), std::regex::icase);
+    std::smatch match;
+    if (std::regex_search(raw, match, tagRegex)) {
+        return match[1].str();
+    }
+    return "";
+}
+
+std::string Regular::extractTagAttribute(const std::string& raw, const std::string& tag, const std::string& attribute) {
+    std::regex  tagAttrRegex(std::format(R"xx(<{0}[^>]*{1}=["']([^"']+)["'][^>]*>)xx", tag, attribute), std::regex::icase);
+    std::smatch match;
+    if (std::regex_search(raw, match, tagAttrRegex)) {
+        return match[1].str();
+    }
+    return "";
 }

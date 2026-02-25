@@ -1,5 +1,6 @@
 #pragma once
 
+#include <format>
 #include <functional>
 #include <string>
 
@@ -61,9 +62,14 @@ private:
     LogCallback mLogCallback;
 };
 
-// 便利宏定义
-#define LOG_DEBUG(msg) Logger::getInstance().debug(msg)
-#define LOG_INFO(msg) Logger::getInstance().info(msg)
-#define LOG_WARNING(msg) Logger::getInstance().warning(msg)
-#define LOG_ERROR(msg) Logger::getInstance().error(msg)
-#define LOG_CRITICAL(msg) Logger::getInstance().critical(msg)
+// 格式化辅助函数（处理临时值参数）
+namespace detail {
+template <typename... Args> std::string format_log(std::string_view fmt, Args&&... args) { return std::vformat(fmt, std::make_format_args(args...)); }
+} // namespace detail
+
+// 便利宏定义（支持 std::format 格式化参数）
+#define LOG_DEBUG(fmt, ...) Logger::getInstance().debug(detail::format_log(fmt __VA_OPT__(, ) __VA_ARGS__))
+#define LOG_INFO(fmt, ...) Logger::getInstance().info(detail::format_log(fmt __VA_OPT__(, ) __VA_ARGS__))
+#define LOG_WARNING(fmt, ...) Logger::getInstance().warning(detail::format_log(fmt __VA_OPT__(, ) __VA_ARGS__))
+#define LOG_ERROR(fmt, ...) Logger::getInstance().error(detail::format_log(fmt __VA_OPT__(, ) __VA_ARGS__))
+#define LOG_CRITICAL(fmt, ...) Logger::getInstance().critical(detail::format_log(fmt __VA_OPT__(, ) __VA_ARGS__))

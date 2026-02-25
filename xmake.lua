@@ -12,6 +12,9 @@ target("MSLogin")
     add_includedirs("src", {public = true})
     add_packages("nlohmann_json", "cpp-httplib", "boost", "openssl3", "cpr", {public = true})
     add_defines("WIN32_LEAN_AND_MEAN", "NOMINMAX", "MSLOGIN_EXPORTS")
+    if is_plat("windows") then
+        add_cxflags("/Zc:preprocessor", {public = true})
+    end
 
 target("MSLoginTest")
     set_kind("binary")

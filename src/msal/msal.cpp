@@ -76,7 +76,7 @@ void MSAL::fullLogin() {
     MSAL_IDeviceCodeAuth device_code_auth;
     doDeviceCodeAuth(device_code_auth);
 
-    LOG_INFO(std::format("获取到登录提示：{}", device_code_auth.message));
+    LOG_INFO("获取到登录提示：{}", device_code_auth.message);
 
     MSALLogin login_helper;
     login_helper.MSALEasyLogin(device_code_auth.verification_uri, device_code_auth.user_code, _email, _password);
