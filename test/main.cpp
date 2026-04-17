@@ -14,7 +14,8 @@ int main() {
         }
     });
 
-    MSAL msal("tokens.json", "tounaydrllmh@outlook.com", "NQzymTFh");
+    MSAL msal("tokens.json", "tounaydrllmh@outlook.com", "xxxxx");
+    msal.getStreamToken();
 
     return 0;
 }
