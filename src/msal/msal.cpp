@@ -23,7 +23,17 @@ MSAL::MSAL(const std::filesystem::path& path, const std::string& email, const st
     }
 }
 
-MSAL::~MSAL() { saveTokensToFile(); }
+MSAL::~MSAL() noexcept {
+    try {
+        saveTokensToFile();
+    } catch (...) {
+        // A cache write failure must not terminate the host while unwinding.
+        // Never expose token contents, account paths, or exception text here.
+        try {
+            LOG_WARNING("[io_failed] Failed to save authentication cache during shutdown (auth.cache.save)");
+        } catch (...) {}
+    }
+}
 
 MSAL_OAuth2Token MSAL::getOAuth2Token() {
     if (_oauth2Token.isExpired()) {
